@@ -1,0 +1,69 @@
+{
+  "users": [
+    {
+      "id": "u_ha0byi7ak",
+      "username": "iamravi",
+      "passwordHash": "$2a$10$OgwYJKtt2B1dtLhaGvhcN.pEaL6aC9Vm8VI660r.XoS5VFFPGE1FO",
+      "targetCompany": "tcs",
+      "hoursGoal": 10,
+      "createdAt": "2026-07-09T19:41:09.441Z"
+    },
+    {
+      "id": "u_f8t6by7l2",
+      "username": "demo",
+      "passwordHash": "$2a$10$1U9Gh8YA2kxGvGIRBI2RveN3gLNU7yuqRnYTbhKE.7WURWHFIMswy",
+      "targetCompany": "",
+      "hoursGoal": 10,
+      "createdAt": "2026-07-09T20:06:54.883Z"
+    },
+    {
+      "id": "u_ziof4oc0n",
+      "username": "kjkhn",
+      "passwordHash": "$2a$10$mbFyllAs0ieDn5eGj/E4kufeKbxI.RAckkOAatTwXVAhMXgpmr5SG",
+      "targetCompany": "hhh",
+      "hoursGoal": 10,
+      "createdAt": "2026-07-09T20:12:57.601Z"
+    },
+    {
+      "id": "u_i4lvy4ums",
+      "username": "iamrav",
+      "passwordHash": "$2a$10$AE9Vbo1RjEpuVsHaw5QF9.b7ilC9MQUthXiH8h8bB1wIpJ/sKgYaS",
+      "targetCompany": "info",
+      "hoursGoal": "9",
+      "createdAt": "2026-07-09T20:29:07.693Z"
+    }
+  ],
+  "problems": [
+    {
+      "id": "p_mrdx1caml9g16u",
+      "userId": "u_ha0byi7ak",
+      "title": "hello world",
+      "link": "",
+      "description": "1st problem",
+      "pattern": "Other",
+      "difficulty": "Easy",
+      "notes": "",
+      "mistakes": "",
+      "summary": {
+        "pattern": "Other",
+        "keyInsight": "Break down the input size, identify redundant work, and optimize using appropriate data structures.",
+        "timeComplexity": "O(N)",
+        "spaceComplexity": "O(1)",
+        "summary": "Analyzed title and description context. Recommended pattern: Other. Solve by traversing elements and managing state efficiently."
+      },
+      "createdAt": "2026-07-09",
+      "interval": 7,
+      "nextReview": "2026-07-15",
+      "reviewHistory": [
+        {
+          "date": "2026-07-09",
+          "confidence": 1
+        },
+        {
+          "date": "2026-07-09",
+          "confidence": 4
+        }
+      ]
+    }
+  ]
+}
