@@ -1,7 +1,7 @@
 services:
   - type: web
     name: study-buddy-backend
-    env: node
+    runtime: node
     plan: free
     rootDir: backend
     buildCommand: npm install
@@ -13,9 +13,12 @@ services:
         generateValue: true
       - key: MONGODB_URI
         sync: false
+      - key: GEMINI_API_KEY
+        sync: false
 
-  - type: static
+  - type: web
     name: study-buddy-frontend
+    runtime: static
     buildCommand: npm install && npm run build
     staticPublishPath: frontend/dist
     rootDir: frontend
