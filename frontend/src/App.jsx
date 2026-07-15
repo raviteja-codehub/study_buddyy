@@ -6,7 +6,23 @@ import ProblemList from './components/ProblemList';
 import RevisionQueue from './components/RevisionQueue';
 import ProblemForm from './components/ProblemForm';
 import Settings from './components/Settings';
-import { LayoutDashboard, ListChecks, ClipboardList, Settings as SettingsIcon, Brain, Plus, LogOut, Loader2, Target } from 'lucide-react';
+import FocusTimer from './components/FocusTimer';
+import Performance from './components/Performance';
+import { 
+  LayoutDashboard, 
+  ListChecks, 
+  ClipboardList, 
+  Settings as SettingsIcon, 
+  Brain, 
+  Plus, 
+  LogOut, 
+  Loader2, 
+  Target,
+  Menu,
+  X,
+  TrendingUp,
+  Timer
+} from 'lucide-react';
 
 const STORAGE_KEY = 'studybuddy-v2-local';
 
@@ -70,6 +86,7 @@ function AppContent() {
   
   // Specific problem review redirection state
   const [reviewProblemId, setReviewProblemId] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Sync data fetch
   const fetchProblems = useCallback(async () => {
@@ -284,30 +301,28 @@ function AppContent() {
   const openEdit = (id) => {
     setEditingId(id);
     setView('form');
+    setSidebarOpen(false);
   };
 
   const openDirectReview = (id) => {
     setReviewProblemId(id);
     setView('queue');
+    setSidebarOpen(false);
+  };
+
+  const navigateTo = (nextView) => {
+    setView(nextView);
+    setReviewProblemId(null);
+    setSidebarOpen(false);
   };
 
   const activeEditingProblem = editingId ? problems.find(p => p.id === editingId) : null;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
-      {/* Sidebar Navigation */}
-      <div style={{
-        width: '230px',
-        background: 'var(--surface)',
-        borderRight: '1px solid var(--border)',
-        padding: '24px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 28,
-        flexShrink: 0
-      }}>
-        {/* Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
+      {/* Mobile Top Header */}
+      <div className="sb-mobile-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
             width: 32,
             height: 32,
@@ -318,141 +333,218 @@ function AppContent() {
             justifyContent: 'center',
             boxShadow: '0 2px 8px rgba(56, 189, 248, 0.2)'
           }}>
-            <Brain size={18} color="#09090b" />
+            <Brain size={16} color="#09090b" />
           </div>
           <span className="mono" style={{ fontWeight: 800, fontSize: 15, letterSpacing: '-0.02em', color: '#fff' }}>
             Study Buddy
           </span>
         </div>
-
-        {/* Action button */}
         <button 
-          onClick={() => { setEditingId(null); setView('form'); }} 
-          className="btn-primary" 
-          style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: 6 }}
+          onClick={() => setSidebarOpen(!sidebarOpen)} 
+          className="sb-menu-toggle-btn"
+          aria-label="Toggle navigation menu"
         >
-          <Plus size={14} /> Log Problem
+          {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
-
-        {/* Navigation list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
-          <button 
-            onClick={() => { setView('dashboard'); setReviewProblemId(null); }} 
-            className={`nav-item ${view === 'dashboard' ? 'active' : ''}`}
-          >
-            <LayoutDashboard size={16} />
-            <span>Dashboard</span>
-          </button>
-          
-          <button 
-            onClick={() => { setView('problems'); setReviewProblemId(null); }} 
-            className={`nav-item ${view === 'problems' ? 'active' : ''}`}
-          >
-            <ListChecks size={16} />
-            <span>Problems Log</span>
-          </button>
-
-          <button 
-            onClick={() => { setView('queue'); setReviewProblemId(null); }} 
-            className={`nav-item ${view === 'queue' ? 'active' : ''}`}
-          >
-            <ClipboardList size={16} />
-            <span style={{ flex: 1 }}>Revision Queue</span>
-            {dueTodayCount > 0 && (
-              <span className="mono" style={{
-                fontSize: 10,
-                fontWeight: 700,
-                background: 'var(--frost)',
-                color: '#09090b',
-                padding: '2px 7px',
-                borderRadius: 10
-              }}>
-                {dueTodayCount}
-              </span>
-            )}
-          </button>
-
-          <button 
-            onClick={() => { setView('settings'); setReviewProblemId(null); }} 
-            className={`nav-item ${view === 'settings' ? 'active' : ''}`}
-          >
-            <SettingsIcon size={16} />
-            <span>Settings</span>
-          </button>
-        </div>
-
-        {/* User context footer */}
-        <div style={{
-          borderTop: '1px solid var(--border)',
-          paddingTop: 16,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user.username}
-            </div>
-            {user.targetCompany && (
-              <div style={{ fontSize: 11, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                Goal: {user.targetCompany}
-              </div>
-            )}
-          </div>
-          <button onClick={logout} className="btn-ghost" style={{ padding: 6 }} title="Log out">
-            <LogOut size={14} />
-          </button>
-        </div>
       </div>
 
-      {/* Main Workspace Frame */}
-      <div style={{ flex: 1, padding: '36px 40px', overflowY: 'auto', maxHeight: '100vh' }}>
-        {loadingProblems ? (
-          <div style={{ height: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Loader2 size={32} className="sb-spin" color="var(--frost)" />
-          </div>
-        ) : (
-          <>
-            {view === 'dashboard' && (
-              <Dashboard 
-                problems={problems} 
-                streak={streak} 
-                onGoQueue={() => setView('queue')} 
-                onGoAdd={() => { setEditingId(null); setView('form'); }} 
-              />
-            )}
-            {view === 'problems' && (
-              <ProblemList 
-                problems={problems} 
-                onEdit={openEdit} 
-                onDelete={handleDelete} 
-                onAdd={() => { setEditingId(null); setView('form'); }} 
-                onDirectReview={openDirectReview}
-              />
-            )}
-            {view === 'queue' && (
-              <RevisionQueue 
-                problems={problems} 
-                onRate={handleRate} 
-                activeProblemId={reviewProblemId}
-                onBack={() => { setView('dashboard'); setReviewProblemId(null); }} 
-              />
-            )}
-            {view === 'form' && (
-              <ProblemForm 
-                initial={activeEditingProblem} 
-                onSave={activeEditingProblem ? handleSaveEdit : handleSaveNew} 
-                onCancel={() => { setEditingId(null); setView(activeEditingProblem ? 'problems' : 'dashboard'); }} 
-              />
-            )}
-            {view === 'settings' && (
-              <Settings 
-                problems={problems} 
-                onImportData={handleImportBackup} 
-              />
-            )}
-          </>
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, position: 'relative' }}>
+        {/* Mobile Sidebar Overlay Backdrop */}
+        {sidebarOpen && (
+          <div 
+            onClick={() => setSidebarOpen(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              top: '60px',
+              background: 'rgba(9, 9, 11, 0.5)',
+              backdropFilter: 'blur(4px)',
+              zIndex: 30
+            }}
+          />
         )}
+
+        {/* Sidebar Navigation */}
+        <div className={`sb-app-sidebar ${sidebarOpen ? 'open' : ''}`} style={{
+          width: '230px',
+          background: 'var(--surface)',
+          borderRight: '1px solid var(--border)',
+          padding: '24px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 28,
+          flexShrink: 0
+        }}>
+          {/* Brand (Hidden on Mobile) */}
+          <div className="sb-sidebar-brand" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px' }}>
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: 'linear-gradient(135deg, #38bdf8, #0369a1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(56, 189, 248, 0.2)'
+            }}>
+              <Brain size={18} color="#09090b" />
+            </div>
+            <span className="mono" style={{ fontWeight: 800, fontSize: 15, letterSpacing: '-0.02em', color: '#fff' }}>
+              Study Buddy
+            </span>
+          </div>
+
+          {/* Action button */}
+          <button 
+            onClick={() => { setEditingId(null); navigateTo('form'); }} 
+            className="btn-primary" 
+            style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: 6 }}
+          >
+            <Plus size={14} /> Log Problem
+          </button>
+
+          {/* Navigation list */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+            <button 
+              onClick={() => navigateTo('dashboard')} 
+              className={`nav-item ${view === 'dashboard' ? 'active' : ''}`}
+            >
+              <LayoutDashboard size={16} />
+              <span>Dashboard</span>
+            </button>
+            
+            <button 
+              onClick={() => navigateTo('problems')} 
+              className={`nav-item ${view === 'problems' ? 'active' : ''}`}
+            >
+              <ListChecks size={16} />
+              <span>Problems Log</span>
+            </button>
+
+            <button 
+              onClick={() => navigateTo('queue')} 
+              className={`nav-item ${view === 'queue' ? 'active' : ''}`}
+            >
+              <ClipboardList size={16} />
+              <span style={{ flex: 1 }}>Revision Queue</span>
+              {dueTodayCount > 0 && (
+                <span className="mono" style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  background: 'var(--frost)',
+                  color: '#09090b',
+                  padding: '2px 7px',
+                  borderRadius: 10
+                }}>
+                  {dueTodayCount}
+                </span>
+              )}
+            </button>
+
+            <button 
+              onClick={() => navigateTo('focus_timer')} 
+              className={`nav-item ${view === 'focus_timer' ? 'active' : ''}`}
+            >
+              <Timer size={16} />
+              <span>Focus Timer</span>
+            </button>
+
+            <button 
+              onClick={() => navigateTo('performance')} 
+              className={`nav-item ${view === 'performance' ? 'active' : ''}`}
+            >
+              <TrendingUp size={16} />
+              <span>Performance</span>
+            </button>
+
+            <button 
+              onClick={() => navigateTo('settings')} 
+              className={`nav-item ${view === 'settings' ? 'active' : ''}`}
+            >
+              <SettingsIcon size={16} />
+              <span>Settings</span>
+            </button>
+          </div>
+
+          {/* User context footer */}
+          <div style={{
+            borderTop: '1px solid var(--border)',
+            paddingTop: 16,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.username}
+              </div>
+              {user.targetCompany && (
+                <div style={{ fontSize: 11, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Goal: {user.targetCompany}
+                </div>
+              )}
+            </div>
+            <button onClick={logout} className="btn-ghost" style={{ padding: 6 }} title="Log out">
+              <LogOut size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Main Workspace Frame */}
+        <div className="sb-app-content-container" style={{ flex: 1, padding: '36px 40px', overflowY: 'auto', maxHeight: 'calc(100vh - 60px)' }}>
+          {loadingProblems ? (
+            <div style={{ height: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Loader2 size={32} className="sb-spin" color="var(--frost)" />
+            </div>
+          ) : (
+            <>
+              {view === 'dashboard' && (
+                <Dashboard 
+                  problems={problems} 
+                  streak={streak} 
+                  onGoQueue={() => setView('queue')} 
+                  onGoAdd={() => { setEditingId(null); setView('form'); }} 
+                />
+              )}
+              {view === 'problems' && (
+                <ProblemList 
+                  problems={problems} 
+                  onEdit={openEdit} 
+                  onDelete={handleDelete} 
+                  onAdd={() => { setEditingId(null); setView('form'); }} 
+                  onDirectReview={openDirectReview}
+                />
+              )}
+              {view === 'queue' && (
+                <RevisionQueue 
+                  problems={problems} 
+                  onRate={handleRate} 
+                  activeProblemId={reviewProblemId}
+                  onBack={() => { setView('dashboard'); setReviewProblemId(null); }} 
+                />
+              )}
+              {view === 'form' && (
+                <ProblemForm 
+                  initial={activeEditingProblem} 
+                  onSave={activeEditingProblem ? handleSaveEdit : handleSaveNew} 
+                  onCancel={() => { setEditingId(null); setView(activeEditingProblem ? 'problems' : 'dashboard'); }} 
+                />
+              )}
+              {view === 'settings' && (
+                <Settings 
+                  problems={problems} 
+                  onImportData={handleImportBackup} 
+                />
+              )}
+              {view === 'focus_timer' && (
+                <FocusTimer />
+              )}
+              {view === 'performance' && (
+                <Performance />
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -31,6 +31,22 @@
       "targetCompany": "info",
       "hoursGoal": "9",
       "createdAt": "2026-07-09T20:29:07.693Z"
+    },
+    {
+      "id": "u_rsrdfxuiv",
+      "username": "ravi",
+      "passwordHash": "$2a$10$AYi3JKWEGnKJgTQMXRFX2.bATFc9N09VoHjkW3ru3EeMGm.J7/8q6",
+      "targetCompany": "meta",
+      "hoursGoal": 9,
+      "createdAt": "2026-07-15T16:29:46.322Z"
+    },
+    {
+      "id": "u_b71h06mte",
+      "username": "jviy",
+      "passwordHash": "$2a$10$khrptjOfziqKn82vM7uX8O/nTuetaJkXllfmtYBFgLXoh5VBGX8zm",
+      "targetCompany": "hi",
+      "hoursGoal": 10,
+      "createdAt": "2026-07-15T17:09:57.584Z"
     }
   ],
   "problems": [

@@ -267,7 +267,24 @@ function generateFallbackSummary(title = '', description = '', notes = '') {
   };
 }
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Study Buddy Server running on port ${PORT}`);
-});
+const DEFAULT_PORT = parseInt(process.env.PORT, 10) || 3001;
+const PORT_FALLBACKS = [DEFAULT_PORT, 3002, 3003, 3004];
+
+function startServer(ports, index = 0) {
+  const port = ports[index];
+  const server = app.listen(port, () => {
+    console.log(`Study Buddy Server running on port ${port}`);
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE' && index < ports.length - 1) {
+      console.warn(`Port ${port} is in use. Trying next available port...`);
+      startServer(ports, index + 1);
+    } else {
+      console.error('Server failed to start:', err);
+      process.exit(1);
+    }
+  });
+}
+
+startServer(PORT_FALLBACKS);

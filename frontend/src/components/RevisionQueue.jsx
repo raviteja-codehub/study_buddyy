@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, RotateCcw, AlertTriangle, ExternalLink, ArrowLeft, ArrowRight, Eye, CheckCircle } from 'lucide-react';
+import Badge from './ui/Badge';
 
 const COLORS = {
   easy: '#4ade80',
@@ -20,19 +21,9 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function Badge({ children, color, bg }) {
-  return (
-    <span className="mono" style={{
-      fontSize: 10.5, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase',
-      color, background: bg, padding: '3px 8px', borderRadius: 4, whiteSpace: 'nowrap',
-    }}>{children}</span>
-  );
-}
-
 function DifficultyBadge({ level }) {
-  const map = { Easy: [COLORS.easy, 'rgba(74, 222, 128, 0.12)'], Medium: [COLORS.medium, 'rgba(251, 146, 60, 0.12)'], Hard: [COLORS.hard, 'rgba(248, 113, 113, 0.12)'] };
-  const [c, bg] = map[level] || map.Medium;
-  return <Badge color={c} bg={bg}>{level}</Badge>;
+  const variant = level ? level.toLowerCase() : 'medium';
+  return <Badge variant={variant} type="dim">{level}</Badge>;
 }
 
 export default function RevisionQueue({ problems, onRate, activeProblemId, onBack }) {
