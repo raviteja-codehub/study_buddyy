@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './context/AuthContext';
-import LoginPage from './components/LoginPage';
-import Dashboard from './components/Dashboard';
-import ProblemList from './components/ProblemList';
-import RevisionQueue from './components/RevisionQueue';
-import ProblemForm from './components/ProblemForm';
-import Settings from './components/Settings';
-import FocusTimer from './components/FocusTimer';
-import Performance from './components/Performance';
+import LoginPage from './pages/login-page';
+import Dashboard from './pages/dashboard-page';
+import ProblemList from './pages/problems-log-page';
+import RevisionQueue from './pages/revision-queue-page';
+import ProblemForm from './pages/problem-form-page';
+import Settings from './pages/settings-page';
+import FocusTimer from './pages/focus-timer-page';
+import Performance from './pages/performance-page';
 import { LayoutDashboard, ListChecks, ClipboardList, Settings as SettingsIcon, Brain, Plus, LogOut, Loader as Loader2, Target, Menu, X, TrendingUp, Timer } from 'lucide-react';
 
 const STORAGE_KEY = 'studybuddy-v2-local';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, RotateCcw, TriangleAlert as AlertTriangle, ExternalLink, ArrowLeft, ArrowRight, Eye, CircleCheck as CheckCircle } from 'lucide-react';
-import Badge from './ui/Badge';
+import Badge from '../components/ui/Badge';
 
 const COLORS = {
   easy: '#4ade80',

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Search, ExternalLink, TriangleAlert as AlertTriangle, Pencil, Trash2, Calendar, ClipboardCheck, ArrowRight, X, Copy, Check } from 'lucide-react';
-import Badge from './ui/Badge';
+import Badge from '../components/ui/Badge';
 
 const PATTERNS = [
   'Two Pointers', 'Sliding Window', 'Binary Search', 'DFS', 'BFS',
