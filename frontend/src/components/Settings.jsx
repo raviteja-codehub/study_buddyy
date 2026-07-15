@@ -83,14 +83,15 @@ export default function Settings({ problems, onImportData }) {
     <div className="sb-fade-in" style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
       
       {/* Server Status Header banner */}
-      <div style={{
-        background: useLocalOnly ? 'var(--danger-dim)' : 'rgba(74, 222, 128, 0.05)',
+      <div className="sb-fade-in" style={{
+        background: useLocalOnly ? 'var(--danger-dim)' : 'rgba(74, 222, 128, 0.04)',
         border: `1px solid ${useLocalOnly ? 'rgba(248, 113, 113, 0.15)' : 'rgba(74, 222, 128, 0.15)'}`,
-        borderRadius: 12,
+        borderRadius: 'var(--radius-md)',
         padding: '14px 18px',
         display: 'flex',
         alignItems: 'center',
-        gap: 12
+        gap: 12,
+        boxShadow: useLocalOnly ? '0 0 16px rgba(248, 113, 113, 0.04)' : '0 0 16px rgba(74, 222, 128, 0.04)'
       }}>
         {useLocalOnly ? (
           <>
@@ -113,7 +114,7 @@ export default function Settings({ problems, onImportData }) {
 
       {/* Profile Form */}
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <h4 className="mono" style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
+        <h4 className="mono" style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', paddingBottom: 10, letterSpacing: '0.02em' }}>
           Profile Goals
         </h4>
         <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -152,14 +153,14 @@ export default function Settings({ problems, onImportData }) {
 
       {/* Custom AI Keys */}
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <h4 className="mono" style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
+        <h4 className="mono" style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', paddingBottom: 10, letterSpacing: '0.02em' }}>
           Gemini AI Configuration
         </h4>
         <div style={{
-          background: 'rgba(255, 255, 255, 0.01)',
-          border: '1px solid var(--border)',
-          borderRadius: 8,
-          padding: '10px 14px',
+          background: 'rgba(56, 189, 248, 0.03)',
+          border: '1px solid rgba(56, 189, 248, 0.1)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '12px 14px',
           display: 'flex',
           gap: 8,
           alignItems: 'flex-start'
@@ -196,7 +197,7 @@ export default function Settings({ problems, onImportData }) {
 
       {/* Portability / Backup block */}
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <h4 className="mono" style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>
+        <h4 className="mono" style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', paddingBottom: 10, letterSpacing: '0.02em' }}>
           Workspace Data & Backups
         </h4>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -240,12 +241,29 @@ export default function Settings({ problems, onImportData }) {
       </div>
 
       {/* Account controls */}
-      <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(248, 113, 113, 0.12)' }}>
-        <div>
-          <h4 style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Logged in as: {user?.username}</h4>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Targeting: {user?.targetCompany || 'Not Specified'}</span>
+      <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(248, 113, 113, 0.12)', transition: 'all 0.3s var(--ease-out)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 38,
+            height: 38,
+            borderRadius: 10,
+            background: 'var(--surface-hover)',
+            border: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 15,
+            fontWeight: 700,
+            color: 'var(--frost)'
+          }}>
+            {user?.username?.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <h4 style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Logged in as: {user?.username}</h4>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Targeting: {user?.targetCompany || 'Not Specified'}</span>
+          </div>
         </div>
-        <button onClick={logout} className="btn-danger" style={{ display: 'flex', gap: 6 }}>
+        <button onClick={logout} className="btn-danger" style={{ display: 'flex', gap: 6, padding: '10px 18px' }}>
           <LogOut size={14} /> Log Out
         </button>
       </div>

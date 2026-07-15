@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, ExternalLink, AlertTriangle, Pencil, Trash2, Calendar, ClipboardCheck, ArrowRight, X, Copy, Check } from 'lucide-react';
+import { Search, ExternalLink, TriangleAlert as AlertTriangle, Pencil, Trash2, Calendar, ClipboardCheck, ArrowRight, X, Copy, Check } from 'lucide-react';
 import Badge from './ui/Badge';
 
 const PATTERNS = [
@@ -90,10 +90,10 @@ export default function ProblemList({ problems, onEdit, onDelete, onAdd, onDirec
     <div className="sb-fade-in" style={{ display: 'flex', gap: 20, minHeight: '520px', position: 'relative' }}>
       
       {/* Problems log section */}
-      <div style={{ flex: selectedId ? '2 1 60%' : '1 1 100%', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', minWidth: 0 }}>
+      <div style={{ flex: selectedId ? '2 1 60%' : '1 1 100%', transition: 'all 0.3s var(--ease-out)', minWidth: 0 }}>
         
         {/* Search, Filter, Sort Actions */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
+        <div className="sb-stagger" style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: '1 1 200px' }}>
             <Search size={14} color="var(--text-faint)" style={{ position: 'absolute', left: 12, top: 12 }} />
             <input 
@@ -126,7 +126,7 @@ export default function ProblemList({ problems, onEdit, onDelete, onAdd, onDirec
 
         {/* Table representation */}
         {filteredAndSorted.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }} className="card">
+          <div className="sb-fade-in" style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--surface)' }}>
             No logged problems match your filter criteria.
           </div>
         ) : (
@@ -228,18 +228,18 @@ export default function ProblemList({ problems, onEdit, onDelete, onAdd, onDirec
 
       {/* Slide-out details side panel */}
       {selectedId && selectedProblem && (
-        <div className="sb-fade-in" style={{ 
-          flex: '1 1 38%', 
-          background: 'var(--surface)', 
-          border: '1px solid var(--border-strong)', 
-          borderRadius: 14, 
+        <div className="sb-slide-in-right" style={{
+          flex: '1 1 38%',
+          background: 'var(--surface)',
+          border: '1px solid var(--border-strong)',
+          borderRadius: 'var(--radius-lg)',
           padding: 24,
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: 16, 
-          maxHeight: '660px', 
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          maxHeight: '660px',
           overflowY: 'auto',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+          boxShadow: 'var(--shadow-xl)',
           position: 'sticky',
           top: 0
         }}>
@@ -267,16 +267,16 @@ export default function ProblemList({ problems, onEdit, onDelete, onAdd, onDirec
 
           {/* AI-Generated Summary Block */}
           {selectedProblem.summary ? (
-            <div style={{ 
-              background: 'rgba(56, 189, 248, 0.03)', 
-              border: '1px solid rgba(56, 189, 248, 0.15)', 
-              borderRadius: 8, 
-              padding: 14 
+            <div style={{
+              background: 'rgba(56, 189, 248, 0.03)',
+              border: '1px solid rgba(56, 189, 248, 0.15)',
+              borderRadius: 'var(--radius-md)',
+              padding: 14
             }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--frost)', fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }} className="mono">
                 AI Synthesis
               </div>
-              <p style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 8, color: 'var(--text)' }}>
+              <p style={{ fontSize: 13, lineHeight: 1.55, marginBottom: 8, color: 'var(--text)' }}>
                 {selectedProblem.summary.summary}
               </p>
               <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 8 }}>
@@ -298,13 +298,13 @@ export default function ProblemList({ problems, onEdit, onDelete, onAdd, onDirec
             <div className="mono" style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
               Approach Notes
             </div>
-            <div style={{ 
-              background: 'rgba(0, 0, 0, 0.2)', 
-              border: '1px solid var(--border)', 
-              borderRadius: 8, 
-              padding: 12, 
-              fontSize: 13, 
-              lineHeight: 1.5, 
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.2)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              padding: 12,
+              fontSize: 13,
+              lineHeight: 1.55,
               whiteSpace: 'pre-wrap',
               maxHeight: '140px',
               overflowY: 'auto'
@@ -318,14 +318,14 @@ export default function ProblemList({ problems, onEdit, onDelete, onAdd, onDirec
             <div style={{
               background: 'rgba(251, 146, 60, 0.03)',
               border: '1px solid rgba(251, 146, 60, 0.12)',
-              borderRadius: 8,
+              borderRadius: 'var(--radius-sm)',
               padding: 12,
               display: 'flex',
               gap: 8,
               alignItems: 'flex-start'
             }}>
               <AlertTriangle size={15} color="var(--ember)" style={{ marginTop: 2, flexShrink: 0 }} />
-              <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 12.5, lineHeight: 1.55 }}>
                 <strong style={{ color: 'var(--ember)' }} className="mono">Mistakes logged: </strong>
                 {selectedProblem.mistakes}
               </div>
@@ -348,13 +348,13 @@ export default function ProblemList({ problems, onEdit, onDelete, onAdd, onDirec
                   {copied ? 'Copied' : 'Copy'}
                 </button>
               </div>
-              <pre className="mono" style={{ 
-                background: '#040406', 
-                border: '1px solid var(--border)', 
-                borderRadius: 8, 
-                padding: 12, 
-                fontSize: 11.5, 
-                lineHeight: 1.55, 
+              <pre className="mono" style={{
+                background: '#040406',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-sm)',
+                padding: 12,
+                fontSize: 11.5,
+                lineHeight: 1.55,
                 overflowX: 'auto',
                 maxHeight: '150px',
                 color: '#d4d4d8'
@@ -366,17 +366,17 @@ export default function ProblemList({ problems, onEdit, onDelete, onAdd, onDirec
 
           {/* Footer Actions Panel */}
           <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-            <button 
-              className="btn-primary" 
+            <button
+              className="btn-primary"
               onClick={() => onDirectReview(selectedProblem.id)}
-              style={{ flex: 1, padding: '9px 0', fontSize: 13 }}
+              style={{ flex: 1, padding: '10px 0', fontSize: 13 }}
             >
               Start Quick Review
             </button>
-            <button 
-              className="btn-secondary" 
+            <button
+              className="btn-secondary"
               onClick={() => onEdit(selectedProblem.id)}
-              style={{ flex: 1, padding: '9px 0', fontSize: 13 }}
+              style={{ flex: 1, padding: '10px 0', fontSize: 13 }}
             >
               Modify Details
             </button>

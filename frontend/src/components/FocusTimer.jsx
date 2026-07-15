@@ -90,8 +90,8 @@ export default function FocusTimer() {
           </div>
 
           <div style={{
-            width: '220px',
-            height: '220px',
+            width: '240px',
+            height: '240px',
             borderRadius: '50%',
             border: '4px solid var(--border-strong)',
             borderTopColor: 'var(--frost)',
@@ -99,11 +99,23 @@ export default function FocusTimer() {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 25px rgba(56, 189, 248, 0.12)',
-            position: 'relative'
+            boxShadow: timerRunning ? '0 0 35px rgba(56, 189, 248, 0.15), inset 0 0 30px rgba(56, 189, 248, 0.03)' : 'var(--shadow-lg)',
+            position: 'relative',
+            transition: 'box-shadow 0.4s var(--ease-out)'
           }}>
+            {timerRunning && (
+              <div style={{
+                position: 'absolute',
+                inset: -4,
+                borderRadius: '50%',
+                border: '4px solid transparent',
+                borderTopColor: 'var(--frost)',
+                animation: 'spin 2s linear infinite',
+                opacity: 0.3
+              }} />
+            )}
             <Timer size={36} color="var(--frost)" style={{ opacity: 0.9, marginBottom: 10 }} />
-            <span className="mono" style={{ fontSize: '44px', fontWeight: 800, letterSpacing: '-0.04em' }}>
+            <span className="mono" style={{ fontSize: '46px', fontWeight: 800, letterSpacing: '-0.04em', textShadow: '0 0 20px rgba(56, 189, 248, 0.2)' }}>
               {formatTime(secondsLeft)}
             </span>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: 6 }}>

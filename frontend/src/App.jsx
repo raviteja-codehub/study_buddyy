@@ -8,21 +8,7 @@ import ProblemForm from './components/ProblemForm';
 import Settings from './components/Settings';
 import FocusTimer from './components/FocusTimer';
 import Performance from './components/Performance';
-import { 
-  LayoutDashboard, 
-  ListChecks, 
-  ClipboardList, 
-  Settings as SettingsIcon, 
-  Brain, 
-  Plus, 
-  LogOut, 
-  Loader2, 
-  Target,
-  Menu,
-  X,
-  TrendingUp,
-  Timer
-} from 'lucide-react';
+import { LayoutDashboard, ListChecks, ClipboardList, Settings as SettingsIcon, Brain, Plus, LogOut, Loader as Loader2, Target, Menu, X, TrendingUp, Timer } from 'lucide-react';
 
 const STORAGE_KEY = 'studybuddy-v2-local';
 
@@ -324,23 +310,23 @@ function AppContent() {
       <div className="sb-mobile-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            background: 'linear-gradient(135deg, #38bdf8, #0369a1)',
+            width: 34,
+            height: 34,
+            borderRadius: 9,
+            background: 'var(--grad-frost)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(56, 189, 248, 0.2)'
+            boxShadow: '0 2px 12px rgba(56, 189, 248, 0.3)'
           }}>
-            <Brain size={16} color="#09090b" />
+            <Brain size={17} color="#09090b" />
           </div>
           <span className="mono" style={{ fontWeight: 800, fontSize: 15, letterSpacing: '-0.02em', color: '#fff' }}>
             Study Buddy
           </span>
         </div>
-        <button 
-          onClick={() => setSidebarOpen(!sidebarOpen)} 
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
           className="sb-menu-toggle-btn"
           aria-label="Toggle navigation menu"
         >
@@ -351,41 +337,42 @@ function AppContent() {
       <div style={{ display: 'flex', flex: 1, minHeight: 0, position: 'relative' }}>
         {/* Mobile Sidebar Overlay Backdrop */}
         {sidebarOpen && (
-          <div 
+          <div
             onClick={() => setSidebarOpen(false)}
             style={{
               position: 'fixed',
               inset: 0,
               top: '60px',
-              background: 'rgba(9, 9, 11, 0.5)',
-              backdropFilter: 'blur(4px)',
-              zIndex: 30
+              background: 'rgba(5, 5, 7, 0.6)',
+              backdropFilter: 'blur(6px)',
+              zIndex: 30,
+              animation: 'fadeInFast 0.2s ease forwards'
             }}
           />
         )}
 
         {/* Sidebar Navigation */}
         <div className={`sb-app-sidebar ${sidebarOpen ? 'open' : ''}`} style={{
-          width: '230px',
+          width: '240px',
           background: 'var(--surface)',
           borderRight: '1px solid var(--border)',
           padding: '24px 16px',
           display: 'flex',
           flexDirection: 'column',
-          gap: 28,
+          gap: 24,
           flexShrink: 0
         }}>
           {/* Brand (Hidden on Mobile) */}
           <div className="sb-sidebar-brand" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 8px' }}>
             <div style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: 'linear-gradient(135deg, #38bdf8, #0369a1)',
+              width: 34,
+              height: 34,
+              borderRadius: 9,
+              background: 'var(--grad-frost)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(56, 189, 248, 0.2)'
+              boxShadow: '0 2px 12px rgba(56, 189, 248, 0.3)'
             }}>
               <Brain size={18} color="#09090b" />
             </div>
@@ -395,10 +382,10 @@ function AppContent() {
           </div>
 
           {/* Action button */}
-          <button 
-            onClick={() => { setEditingId(null); navigateTo('form'); }} 
-            className="btn-primary" 
-            style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: 6 }}
+          <button
+            onClick={() => { setEditingId(null); navigateTo('form'); }}
+            className="btn-primary"
+            style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: 6, padding: '11px 18px' }}
           >
             <Plus size={14} /> Log Problem
           </button>
@@ -434,7 +421,8 @@ function AppContent() {
                   background: 'var(--frost)',
                   color: '#09090b',
                   padding: '2px 7px',
-                  borderRadius: 10
+                  borderRadius: 10,
+                  boxShadow: '0 0 8px rgba(56, 189, 248, 0.4)'
                 }}>
                   {dueTodayCount}
                 </span>
@@ -472,17 +460,36 @@ function AppContent() {
             paddingTop: 16,
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center'
+            alignItems: 'center',
+            gap: 8
           }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user.username}
+            <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: 'var(--surface-hover)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                fontSize: 13,
+                fontWeight: 700,
+                color: 'var(--frost)'
+              }}>
+                {user.username.charAt(0).toUpperCase()}
               </div>
-              {user.targetCompany && (
-                <div style={{ fontSize: 11, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  Goal: {user.targetCompany}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user.username}
                 </div>
-              )}
+                {user.targetCompany && (
+                  <div style={{ fontSize: 11, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    Goal: {user.targetCompany}
+                  </div>
+                )}
+              </div>
             </div>
             <button onClick={logout} className="btn-ghost" style={{ padding: 6 }} title="Log out">
               <LogOut size={14} />
@@ -494,7 +501,10 @@ function AppContent() {
         <div className="sb-app-content-container" style={{ flex: 1, padding: '36px 40px', overflowY: 'auto', maxHeight: 'calc(100vh - 60px)' }}>
           {loadingProblems ? (
             <div style={{ height: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Loader2 size={32} className="sb-spin" color="var(--frost)" />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+                <Loader2 size={32} className="sb-spin" color="var(--frost)" />
+                <span className="mono" style={{ fontSize: 12, color: 'var(--text-faint)', letterSpacing: '0.05em' }}>LOADING WORKSPACE</span>
+              </div>
             </div>
           ) : (
             <>
@@ -562,7 +572,10 @@ export default function App() {
         justifyContent: 'center',
         background: 'var(--bg)'
       }}>
-        <Loader2 size={36} className="sb-spin" color="var(--frost)" />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <Loader2 size={36} className="sb-spin" color="var(--frost)" />
+          <span className="mono" style={{ fontSize: 12, color: 'var(--text-faint)', letterSpacing: '0.08em' }}>INITIALIZING</span>
+        </div>
       </div>
     );
   }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Sparkles, Loader2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Sparkles, Loader as Loader2, TriangleAlert as AlertTriangle } from 'lucide-react';
 
 const PATTERNS = [
   'Two Pointers', 'Sliding Window', 'Binary Search', 'DFS', 'BFS',
@@ -102,7 +102,7 @@ export default function ProblemForm({ initial, onSave, onCancel }) {
       </div>
 
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <h3 className="mono" style={{ fontSize: 16, fontWeight: 800, borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
+        <h3 className="mono" style={{ fontSize: 16, fontWeight: 800, borderBottom: '1px solid var(--border)', paddingBottom: 12, letterSpacing: '-0.01em' }}>
           {isEdit ? 'Modify Solved Problem' : 'Log New Solved Problem'}
         </h3>
 
@@ -135,23 +135,25 @@ export default function ProblemForm({ initial, onSave, onCancel }) {
           <Field label="Difficulty">
             <div style={{ display: 'flex', gap: 6 }}>
               {DIFFICULTIES.map(d => (
-                <button 
-                  key={d} 
+                <button
+                  key={d}
                   type="button"
-                  onClick={() => setDifficulty(d)} 
+                  onClick={() => setDifficulty(d)}
                   style={{
-                    flex: 1, 
-                    padding: '10px 0', 
-                    borderRadius: 8, 
-                    fontSize: 13, 
+                    flex: 1,
+                    padding: '10px 0',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: 13,
                     fontWeight: 600,
                     border: `1px solid ${difficulty === d ? 'var(--border-strong)' : 'var(--border)'}`,
-                    background: difficulty === d 
-                      ? (d === 'Easy' ? 'rgba(74, 222, 128, 0.15)' : d === 'Medium' ? 'rgba(251, 146, 60, 0.15)' : 'rgba(248, 113, 113, 0.15)') 
+                    background: difficulty === d
+                      ? (d === 'Easy' ? 'rgba(74, 222, 128, 0.12)' : d === 'Medium' ? 'rgba(251, 146, 60, 0.12)' : 'rgba(248, 113, 113, 0.12)')
                       : 'transparent',
-                    color: difficulty === d 
-                      ? (d === 'Easy' ? COLORS.easy : d === 'Medium' ? COLORS.medium : COLORS.hard) 
+                    color: difficulty === d
+                      ? (d === 'Easy' ? COLORS.easy : d === 'Medium' ? COLORS.medium : COLORS.hard)
                       : 'var(--text-muted)',
+                    transition: 'all 0.25s var(--ease-out)',
+                    boxShadow: difficulty === d ? `0 0 12px ${d === 'Easy' ? 'rgba(74,222,128,0.08)' : d === 'Medium' ? 'rgba(251,146,60,0.08)' : 'rgba(248,113,113,0.08)'}` : 'none'
                   }}
                 >
                   {d}
@@ -193,11 +195,12 @@ export default function ProblemForm({ initial, onSave, onCancel }) {
 
         {/* AI summary results preview */}
         {summary && (
-          <div className="sb-fade-in" style={{ 
-            background: 'var(--frost-dim)', 
-            border: '1px solid rgba(56, 189, 248, 0.25)', 
-            borderRadius: 10, 
-            padding: 16 
+          <div className="sb-fade-in" style={{
+            background: 'var(--frost-dim)',
+            border: '1px solid rgba(56, 189, 248, 0.2)',
+            borderRadius: 'var(--radius-md)',
+            padding: 16,
+            boxShadow: '0 0 20px rgba(56, 189, 248, 0.04)'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
               <Sparkles size={14} color="var(--frost)" />
@@ -243,15 +246,15 @@ export default function ProblemForm({ initial, onSave, onCancel }) {
           <Field label="Initial Recall Confidence" hint="Establishes your initial revision timer sequence.">
             <div style={{ display: 'flex', gap: 6 }}>
               {[1, 2, 3, 4, 5].map(n => (
-                <button 
-                  key={n} 
+                <button
+                  key={n}
                   type="button"
-                  onClick={() => setConfidence(n)} 
+                  onClick={() => setConfidence(n)}
                   style={{
-                    flex: 1, 
-                    padding: '10px 0', 
-                    borderRadius: 8, 
-                    fontSize: 12.5, 
+                    flex: 1,
+                    padding: '10px 0',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: 12.5,
                     fontWeight: 600,
                     border: `1px solid ${confidence === n ? 'var(--border-strong)' : 'var(--border)'}`,
                     background: confidence === n ? `${CONF_COLOR[n]}15` : 'transparent',
@@ -259,7 +262,9 @@ export default function ProblemForm({ initial, onSave, onCancel }) {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: 2
+                    gap: 2,
+                    transition: 'all 0.25s var(--ease-out)',
+                    boxShadow: confidence === n ? `0 0 12px ${CONF_COLOR[n]}20` : 'none'
                   }}
                 >
                   <div className="mono" style={{ fontSize: 15, fontWeight: 800 }}>{n}</div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, AlertTriangle, ExternalLink, ArrowLeft, ArrowRight, Eye, CheckCircle } from 'lucide-react';
+import { Play, Pause, RotateCcw, TriangleAlert as AlertTriangle, ExternalLink, ArrowLeft, ArrowRight, Eye, CircleCheck as CheckCircle } from 'lucide-react';
 import Badge from './ui/Badge';
 
 const COLORS = {
@@ -74,17 +74,30 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
 
   if (dueProblems.length === 0) {
     return (
-      <div style={{
-        textAlign: 'center', padding: '80px 24px', border: `1px dashed var(--border)`,
-        borderRadius: 16, background: 'var(--surface)', margin: '40px auto', maxWidth: 600
+      <div className="sb-fade-in" style={{
+        textAlign: 'center', padding: '80px 24px', border: `1px dashed var(--border-strong)`,
+        borderRadius: 'var(--radius-xl)', background: 'var(--surface)', margin: '40px auto', maxWidth: 600,
+        boxShadow: 'var(--shadow-md)'
       }}>
-        <CheckCircle size={48} color="var(--signal)" style={{ marginBottom: 18, filter: 'drop-shadow(0 0 10px rgba(74,222,128,0.2))' }} />
+        <div style={{
+          width: 64,
+          height: 64,
+          borderRadius: 16,
+          background: 'var(--signal-dim)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 20,
+          border: '1px solid rgba(74, 222, 128, 0.15)'
+        }}>
+          <CheckCircle size={32} color="var(--signal)" style={{ filter: 'drop-shadow(0 0 10px rgba(74,222,128,0.2))' }} />
+        </div>
         <h3 className="mono" style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Revision Queue Cleared!</h3>
         <p style={{ fontSize: 14, color: 'var(--text-muted)', maxWidth: 385, margin: '0 auto 24px', lineHeight: 1.6 }}>
           You've revised all overdue problems. Take a break, check your dashboard metrics, or add new challenges to your pipeline.
         </p>
         {onBack && (
-          <button className="btn-secondary" onClick={onBack}>
+          <button className="btn-secondary" onClick={onBack} style={{ padding: '11px 24px' }}>
             Return to Dashboard
           </button>
         )}
@@ -135,29 +148,31 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
       {/* Timer Capsule widget */}
       <div style={{
         alignSelf: 'center',
-        background: 'rgba(255, 255, 255, 0.02)',
+        background: 'var(--glass-bg)',
+        backdropFilter: 'blur(var(--glass-blur))',
         border: '1px solid var(--border)',
-        borderRadius: 20,
-        padding: '6px 16px',
+        borderRadius: 'var(--radius-full)',
+        padding: '7px 18px',
         display: 'flex',
         alignItems: 'center',
         gap: 12,
-        boxShadow: timerRunning ? '0 0 15px rgba(56, 189, 248, 0.05)' : 'none'
+        boxShadow: timerRunning ? '0 0 20px rgba(56, 189, 248, 0.08), var(--shadow-sm)' : 'var(--shadow-sm)',
+        transition: 'box-shadow 0.3s var(--ease-out)'
       }}>
-        <span className="mono" style={{ fontSize: 14, fontWeight: 700, color: timerRunning ? 'var(--frost)' : 'var(--text-muted)' }}>
+        <span className="mono" style={{ fontSize: 14, fontWeight: 700, color: timerRunning ? 'var(--frost)' : 'var(--text-muted)', textShadow: timerRunning ? '0 0 12px rgba(56, 189, 248, 0.3)' : 'none' }}>
           {formatTime(seconds)}
         </span>
         <div style={{ display: 'flex', gap: 6, borderLeft: '1px solid var(--border)', paddingLeft: 10 }}>
-          <button 
-            onClick={() => setTimerRunning(!timerRunning)} 
-            style={{ padding: 2, color: 'var(--text-muted)' }}
+          <button
+            onClick={() => setTimerRunning(!timerRunning)}
+            style={{ padding: 2, color: 'var(--text-muted)', transition: 'color 0.2s' }}
             title={timerRunning ? 'Pause timer' : 'Start timer'}
           >
             {timerRunning ? <Pause size={13} /> : <Play size={13} />}
           </button>
-          <button 
-            onClick={() => setSeconds(0)} 
-            style={{ padding: 2, color: 'var(--text-muted)' }}
+          <button
+            onClick={() => setSeconds(0)}
+            style={{ padding: 2, color: 'var(--text-muted)', transition: 'color 0.2s' }}
             title="Reset timer"
           >
             <RotateCcw size={13} />
@@ -168,7 +183,7 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
       {/* Flipped Card Component */}
       <div className={`flip-card ${isFlipped ? 'flipped' : ''}`} style={{ height: '420px' }}>
         <div className="flip-card-inner">
-          
+
           {/* Front layout */}
           <div className="flip-card-front">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -176,25 +191,25 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
                 <DifficultyBadge level={activeProblem.difficulty} />
                 <Badge color="var(--frost)" bg="var(--frost-dim)">{activeProblem.pattern}</Badge>
               </div>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#fff', lineHeight: 1.3 }}>{activeProblem.title}</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#fff', lineHeight: 1.3, letterSpacing: '-0.01em' }}>{activeProblem.title}</h2>
               {activeProblem.link && (
-                <a 
-                  href={activeProblem.link} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  style={{ color: 'var(--frost)', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                <a
+                  href={activeProblem.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: 'var(--frost)', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 5, transition: 'color 0.2s' }}
                   onClick={e => e.stopPropagation()}
                 >
                   Solve on external platform <ExternalLink size={12} />
                 </a>
               )}
               {activeProblem.summary && (
-                <div style={{ 
-                  background: 'rgba(255, 255, 255, 0.01)', 
-                  border: '1px solid var(--border)', 
-                  borderRadius: 10, 
-                  padding: 16, 
-                  marginTop: 10 
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.01)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: 16,
+                  marginTop: 10
                 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-faint)', letterSpacing: 0.5, marginBottom: 8 }} className="mono">
                     Problem Summary
@@ -205,9 +220,9 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
                 </div>
               )}
             </div>
-            
-            <button 
-              className="btn-primary" 
+
+            <button
+              className="btn-primary"
               onClick={() => setIsFlipped(true)}
               style={{ width: '100%', padding: '12px 0', display: 'flex', gap: 8 }}
             >
@@ -221,11 +236,11 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
               <div className="mono" style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--frost)', letterSpacing: 0.4, textTransform: 'uppercase' }}>
                 Your solution notes
               </div>
-              <div style={{ 
-                fontSize: 13.5, 
-                lineHeight: 1.6, 
-                color: 'var(--text-muted)', 
-                whiteSpace: 'pre-wrap', 
+              <div style={{
+                fontSize: 13.5,
+                lineHeight: 1.6,
+                color: 'var(--text-muted)',
+                whiteSpace: 'pre-wrap',
                 overflowY: 'auto',
                 flex: 1,
                 paddingRight: 6
@@ -234,13 +249,13 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
               </div>
 
               {activeProblem.mistakes && (
-                <div style={{ 
-                  background: 'var(--ember-dim)', 
+                <div style={{
+                  background: 'var(--ember-dim)',
                   border: '1px solid rgba(251, 146, 60, 0.15)',
-                  borderRadius: 8, 
-                  padding: '8px 12px', 
-                  fontSize: 12.5, 
-                  lineHeight: 1.5,
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '8px 12px',
+                  fontSize: 12.5,
+                  lineHeight: 1.55,
                   display: 'flex',
                   gap: 8,
                   alignItems: 'flex-start'
@@ -266,22 +281,23 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
                 {[1, 2, 3, 4, 5].map(n => (
-                  <button 
-                    key={n} 
-                    onClick={() => handleRate(n)} 
+                  <button
+                    key={n}
+                    onClick={() => handleRate(n)}
                     style={{
-                      flex: 1, 
-                      padding: '8px 0', 
-                      borderRadius: 8, 
-                      fontSize: 11.5, 
+                      flex: 1,
+                      padding: '9px 0',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 11.5,
                       fontWeight: 700,
-                      border: '1px solid var(--border)', 
-                      background: `${CONF_COLOR[n]}15`, 
+                      border: '1px solid var(--border)',
+                      background: `${CONF_COLOR[n]}15`,
                       color: CONF_COLOR[n],
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: 2
+                      gap: 2,
+                      transition: 'all 0.25s var(--ease-out)'
                     }}
                   >
                     <span className="mono" style={{ fontSize: 14 }}>{n}</span>

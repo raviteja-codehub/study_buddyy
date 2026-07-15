@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Flame, Brain, Target, AlertTriangle, Play, Calendar, Star, BookOpen } from 'lucide-react';
+import { Flame, Brain, Target, TriangleAlert as AlertTriangle, Play, Calendar, Star, BookOpen } from 'lucide-react';
 
 const COLORS = {
   bg: '#09090b',
@@ -105,16 +105,29 @@ export default function Dashboard({ problems, streak, onGoQueue, onGoAdd }) {
 
   if (problems.length === 0) {
     return (
-      <div style={{
-        textAlign: 'center', padding: '80px 24px', border: `1px dashed var(--border)`,
-        borderRadius: 16, background: 'var(--surface)', margin: '40px auto', maxWidth: 640
+      <div className="sb-fade-in" style={{
+        textAlign: 'center', padding: '80px 24px', border: `1px dashed var(--border-strong)`,
+        borderRadius: 'var(--radius-xl)', background: 'var(--surface)', margin: '40px auto', maxWidth: 640,
+        boxShadow: 'var(--shadow-md)'
       }}>
-        <Brain size={48} color="var(--text-faint)" style={{ marginBottom: 18 }} />
+        <div style={{
+          width: 64,
+          height: 64,
+          borderRadius: 16,
+          background: 'var(--frost-dim)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 20,
+          border: '1px solid rgba(56, 189, 248, 0.15)'
+        }}>
+          <Brain size={32} color="var(--frost)" />
+        </div>
         <h3 className="mono" style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Initialize your prep workspace</h3>
         <p style={{ fontSize: 14, color: 'var(--text-muted)', maxWidth: 440, margin: '0 auto 24px', lineHeight: 1.6 }}>
           Log the first DSA problem you solved. Study Buddy will auto-generate summaries, compute revision cycles, and highlight structural weaknesses.
         </p>
-        <button className="btn-primary" onClick={onGoAdd}>
+        <button className="btn-primary" onClick={onGoAdd} style={{ padding: '12px 28px' }}>
           Log First Problem
         </button>
       </div>
@@ -125,27 +138,29 @@ export default function Dashboard({ problems, streak, onGoQueue, onGoAdd }) {
     <div className="sb-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       
       {/* Motivation and Streak Banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.08), rgba(56, 189, 248, 0.03))',
-        border: '1px solid rgba(251, 146, 60, 0.15)',
-        borderRadius: 14,
+      <div className="sb-fade-in" style={{
+        background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.06), rgba(56, 189, 248, 0.02))',
+        border: '1px solid rgba(251, 146, 60, 0.12)',
+        borderRadius: 'var(--radius-lg)',
         padding: '24px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: 16
+        gap: 16,
+        boxShadow: 'var(--shadow-sm)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{
-            width: 48,
-            height: 48,
-            borderRadius: 12,
+            width: 50,
+            height: 50,
+            borderRadius: 'var(--radius-md)',
             background: 'var(--ember-dim)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid rgba(251, 146, 60, 0.25)',
+            border: '1px solid rgba(251, 146, 60, 0.2)',
+            boxShadow: '0 0 20px rgba(251, 146, 60, 0.06)'
           }}>
             <Flame size={24} className="sb-flame-animated" color="var(--ember)" />
           </div>
@@ -161,7 +176,7 @@ export default function Dashboard({ problems, streak, onGoQueue, onGoAdd }) {
         
         {dueToday.length > 0 ? (
           <button className="btn-primary" onClick={onGoQueue} style={{
-            background: 'var(--ember)', color: '#000', boxShadow: '0 2px 10px rgba(251, 146, 60, 0.2)'
+            background: 'var(--grad-ember)', color: '#000', boxShadow: '0 2px 12px rgba(251, 146, 60, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
           }}>
             <Play size={14} style={{ marginRight: 6 }} /> Start Revision ({dueToday.length})
           </button>
@@ -171,12 +186,13 @@ export default function Dashboard({ problems, streak, onGoQueue, onGoAdd }) {
             fontWeight: 700,
             color: 'var(--signal)',
             background: 'var(--signal-dim)',
-            padding: '6px 12px',
-            borderRadius: 6,
+            padding: '7px 14px',
+            borderRadius: 'var(--radius-sm)',
             border: '1px solid rgba(74, 222, 128, 0.2)',
             display: 'flex',
             alignItems: 'center',
-            gap: 6
+            gap: 6,
+            boxShadow: '0 0 16px rgba(74, 222, 128, 0.06)'
           }}>
             <Target size={14} /> Review Queue Cleared
           </div>
@@ -184,7 +200,7 @@ export default function Dashboard({ problems, streak, onGoQueue, onGoAdd }) {
       </div>
 
       {/* Statistics Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+      <div className="sb-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
         <StatCard
           label="Due Today"
           value={dueToday.length}
@@ -224,7 +240,7 @@ export default function Dashboard({ problems, streak, onGoQueue, onGoAdd }) {
           </div>
           
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 160, paddingBottom: 4, marginTop: 10 }}>
-            {byPattern.map(p => {
+            {byPattern.map((p, i) => {
               const h = Math.max(8, (p.count / maxCount) * 130);
               const color = p.avgConf === null ? 'var(--text-faint)' : CONF_COLOR[Math.round(p.avgConf)];
               return (
@@ -235,9 +251,10 @@ export default function Dashboard({ problems, streak, onGoQueue, onGoAdd }) {
                     maxWidth: 24,
                     height: h,
                     background: `linear-gradient(to top, ${color}cc, ${color})`,
-                    borderRadius: '4px 4px 0 0',
-                    transition: 'all 0.4s ease',
-                    boxShadow: `0 0 10px ${color}1a`
+                    borderRadius: 'var(--radius-xs) var(--radius-xs) 0 0',
+                    transition: 'all 0.4s var(--ease-out)',
+                    boxShadow: `0 0 12px ${color}25`,
+                    animation: `fadeIn 0.5s var(--ease-out) ${i * 0.05}s both`
                   }} />
                 </div>
               );
@@ -325,11 +342,12 @@ export default function Dashboard({ problems, streak, onGoQueue, onGoAdd }) {
               {weak.map(w => (
                 <div key={w.pattern} className="mono" style={{
                   fontSize: 11.5,
-                  padding: '4px 10px',
-                  borderRadius: 6,
+                  padding: '5px 11px',
+                  borderRadius: 'var(--radius-sm)',
                   background: 'rgba(248, 113, 113, 0.08)',
                   border: '1px solid rgba(248, 113, 113, 0.2)',
-                  color: 'var(--danger)'
+                  color: 'var(--danger)',
+                  transition: 'all 0.2s var(--ease-out)'
                 }}>
                   {w.pattern} ({Number(w.avgConf).toFixed(1)} ★)
                 </div>
@@ -368,17 +386,17 @@ export default function Dashboard({ problems, streak, onGoQueue, onGoAdd }) {
                   alignItems: 'center',
                   background: 'var(--surface-hover)',
                   border: '1px solid var(--border)',
-                  padding: '10px 14px',
-                  borderRadius: 8,
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-sm)',
                   cursor: 'pointer',
-                  transition: 'border-color 0.2s'
+                  transition: 'all 0.2s var(--ease-out)'
                 }} className="card-hover">
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {p.title}
                     </div>
                     <div style={{ display: 'flex', gap: 6, marginTop: 4, alignItems: 'center' }}>
-                      <span className="mono" style={{ fontSize: 10, color: 'var(--frost)', background: 'var(--frost-dim)', padding: '1px 6px', borderRadius: 4 }}>
+                      <span className="mono" style={{ fontSize: 10, color: 'var(--frost)', background: 'var(--frost-dim)', padding: '2px 7px', borderRadius: 4 }}>
                         {p.pattern}
                       </span>
                       <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>
@@ -430,16 +448,28 @@ function StatCard({ label, value, sub, accent, icon: Icon, onClick, clickable })
       style={{
         cursor: clickable ? 'pointer' : 'default',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        transition: 'all 0.3s var(--ease-out)'
       }}
     >
+      {clickable && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 2,
+          background: `linear-gradient(90deg, transparent, ${accent}, transparent)`,
+          opacity: 0.6
+        }} />
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div className="mono" style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: 0.4, textTransform: 'uppercase' }}>
           {label}
         </div>
         {Icon && <Icon size={14} color={accent} />}
       </div>
-      <div className="mono" style={{ fontSize: 28, fontWeight: 800, color: accent, marginTop: 8, lineHeight: 1 }}>
+      <div className="mono" style={{ fontSize: 30, fontWeight: 800, color: accent, marginTop: 10, lineHeight: 1, textShadow: clickable ? `0 0 20px ${accent}40` : 'none' }}>
         {value}
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 8 }}>
@@ -453,8 +483,9 @@ function StatCard({ label, value, sub, accent, icon: Icon, onClick, clickable })
           width: 0,
           height: 0,
           borderStyle: 'solid',
-          borderWidth: '0 0 10px 10px',
-          borderColor: `transparent transparent ${accent} transparent`
+          borderWidth: '0 0 12px 12px',
+          borderColor: `transparent transparent ${accent} transparent`,
+          opacity: 0.7
         }} />
       )}
     </div>
