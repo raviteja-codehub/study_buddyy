@@ -146,12 +146,12 @@ app.delete('/api/problems/:id', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/problems/:id/review', authenticateToken, async (req, res) => {
-  const { confidence } = req.body;
+  const { confidence, timeSpent } = req.body;
   if (!confidence || confidence < 1 || confidence > 5) {
     return res.status(400).json({ error: 'Confidence rating must be between 1 and 5' });
   }
 
-  const updated = await db.addReview(req.user.id, req.params.id, confidence);
+  const updated = await db.addReview(req.user.id, req.params.id, confidence, timeSpent);
   if (!updated) {
     return res.status(404).json({ error: 'Problem not found or unauthorized' });
   }

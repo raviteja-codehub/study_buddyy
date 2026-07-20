@@ -52,6 +52,9 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
   const [timerRunning, setTimerRunning] = useState(false);
   const timerInterval = useRef(null);
 
+  // Time spent on this revision in minutes
+  const [revTimeSpent, setRevTimeSpent] = useState(1);
+
   const activeProblem = dueProblems[Math.min(currentIndex, dueProblems.length - 1)];
 
   // Start timer automatically when a card mounts
@@ -59,6 +62,7 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
     setSeconds(0);
     setTimerRunning(true);
     setIsFlipped(false);
+    setRevTimeSpent(1);
   }, [currentIndex, activeProblemId]);
 
   useEffect(() => {
@@ -106,7 +110,7 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
   }
 
   const handleRate = (confidence) => {
-    onRate(activeProblem.id, confidence);
+    onRate(activeProblem.id, confidence, revTimeSpent);
     setIsFlipped(false);
     
     // If reviewing single problem, exit on rate
@@ -223,7 +227,10 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
 
             <button
               className="btn-primary"
-              onClick={() => setIsFlipped(true)}
+              onClick={() => {
+                setIsFlipped(true);
+                setRevTimeSpent(Math.max(1, Math.round(seconds / 60)));
+              }}
               style={{ width: '100%', padding: '12px 0', display: 'flex', gap: 8 }}
             >
               <Eye size={15} /> Reveal Notes & rate confidence
@@ -276,6 +283,19 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
             </div>
 
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14, marginTop: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
+                  Time Spent (Minutes):
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={revTimeSpent}
+                  onChange={e => setRevTimeSpent(Number(e.target.value) || 1)}
+                  style={{ width: '70px', padding: '4px 8px', fontSize: 12, textAlign: 'center' }}
+                />
+              </div>
+
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>
                 Rate your recall confidence:
               </div>

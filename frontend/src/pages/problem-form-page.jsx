@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Sparkles, Loader as Loader2, TriangleAlert as AlertTriangle } from 'lucide-react';
 
@@ -37,6 +37,7 @@ export default function ProblemForm({ initial, onSave, onCancel }) {
   const [mistakes, setMistakes] = useState(initial?.mistakes || '');
   const [summary, setSummary] = useState(initial?.summary || null);
   const [confidence, setConfidence] = useState(5);
+  const [timeSpent, setTimeSpent] = useState(initial?.timeSpent || '');
   
   const [genLoading, setGenLoading] = useState(false);
   const [genError, setGenError] = useState('');
@@ -88,7 +89,8 @@ export default function ProblemForm({ initial, onSave, onCancel }) {
       notes,
       mistakes,
       summary,
-      confidence
+      confidence,
+      timeSpent: Number(timeSpent) || 0
     });
   };
 
@@ -238,6 +240,17 @@ export default function ProblemForm({ initial, onSave, onCancel }) {
             rows={3} 
             placeholder="e.g. Forgot to handle empty arrays, off-by-one in index lookup." 
             style={{ resize: 'vertical' }} 
+          />
+        </Field>
+
+        {/* Time Spent */}
+        <Field label="Time Spent (Minutes)" hint="How long did you spend solving this problem? (optional)">
+          <input 
+            type="number" 
+            min="0"
+            value={timeSpent} 
+            onChange={e => setTimeSpent(e.target.value)} 
+            placeholder="e.g. 45" 
           />
         </Field>
 

@@ -148,7 +148,8 @@ function AppContent() {
           createdAt: now,
           interval,
           nextReview: addDays(now, interval),
-          reviewHistory: data.confidence ? [{ date: now, confidence: data.confidence }] : []
+          reviewHistory: data.confidence ? [{ date: now, confidence: data.confidence, timeSpent: Number(data.timeSpent) || 0 }] : [],
+          timeSpent: Number(data.timeSpent) || 0
         };
         const updated = [newProb, ...problems];
         setProblems(updated);
@@ -181,7 +182,8 @@ function AppContent() {
           difficulty: data.difficulty,
           notes: data.notes || '',
           mistakes: data.mistakes || '',
-          summary: data.summary
+          summary: data.summary,
+          timeSpent: Number(data.timeSpent) || p.timeSpent || 0
         } : p);
         setProblems(updated);
         syncLocalCache(updated);
@@ -222,7 +224,7 @@ function AppContent() {
     }
   };
 
-  const handleRate = async (id, confidence) => {
+  const handleRate = async (id, confidence, timeSpent) => {
     try {
       if (useLocalOnly || user?.isOfflineMode) {
         const today = todayStr();
@@ -233,7 +235,7 @@ function AppContent() {
             ...p,
             interval,
             nextReview: addDays(today, interval),
-            reviewHistory: [...(p.reviewHistory || []), { date: today, confidence }]
+            reviewHistory: [...(p.reviewHistory || []), { date: today, confidence, timeSpent: Number(timeSpent) || 0 }]
           };
         });
         setProblems(updated);
@@ -242,7 +244,7 @@ function AppContent() {
         const res = await fetch(`${backendUrl}/api/problems/${id}/review`, {
           method: 'POST',
           headers: getHeaders(),
-          body: JSON.stringify({ confidence })
+          body: JSON.stringify({ confidence, timeSpent })
         });
         if (!res.ok) throw new Error('Failed to submit review');
         await fetchProblems();
@@ -550,7 +552,7 @@ function AppContent() {
                 <FocusTimer />
               )}
               {view === 'performance' && (
-                <Performance />
+                <Performance problems={problems} />
               )}
             </>
           )}

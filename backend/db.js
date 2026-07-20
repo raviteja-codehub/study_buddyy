@@ -189,6 +189,7 @@ module.exports = {
     await initialize();
     const now = todayStr();
     const interval = computeNextInterval(data.confidence || 5, null);
+    const timeSpent = data.timeSpent !== undefined ? Number(data.timeSpent) : 0;
     const newProblem = {
       id: 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       userId,
@@ -203,7 +204,8 @@ module.exports = {
       createdAt: now,
       interval,
       nextReview: addDays(now, interval),
-      reviewHistory: data.confidence ? [{ date: now, confidence: data.confidence }] : [],
+      reviewHistory: data.confidence ? [{ date: now, confidence: data.confidence, timeSpent }] : [],
+      timeSpent,
     };
 
     if (isFallback) {
@@ -235,6 +237,7 @@ module.exports = {
         notes: data.notes !== undefined ? data.notes : existing.notes,
         mistakes: data.mistakes !== undefined ? data.mistakes : existing.mistakes,
         summary: data.summary !== undefined ? data.summary : existing.summary,
+        timeSpent: data.timeSpent !== undefined ? Number(data.timeSpent) : existing.timeSpent,
       };
       writeJsonDb(dbData);
       return rowToProblem(dbData.problems[idx]);
@@ -252,6 +255,7 @@ module.exports = {
       notes: data.notes !== undefined ? data.notes : existing.notes,
       mistakes: data.mistakes !== undefined ? data.mistakes : existing.mistakes,
       summary: data.summary !== undefined ? data.summary : existing.summary,
+      timeSpent: data.timeSpent !== undefined ? Number(data.timeSpent) : existing.timeSpent,
     };
 
     await problems.updateOne(
@@ -275,8 +279,9 @@ module.exports = {
     return result.deletedCount > 0;
   },
 
-  async addReview(userId, problemId, confidence) {
+  async addReview(userId, problemId, confidence, timeSpent) {
     await initialize();
+    const timeSpentNum = timeSpent !== undefined ? Number(timeSpent) : 0;
     if (isFallback) {
       const dbData = readJsonDb();
       const idx = dbData.problems.findIndex(p => p.id === problemId && p.userId === userId);
@@ -286,7 +291,7 @@ module.exports = {
       const today = todayStr();
       const nextInterval = computeNextInterval(confidence, existing.interval);
       const reviewHistory = Array.isArray(existing.reviewHistory) ? existing.reviewHistory : [];
-      reviewHistory.push({ date: today, confidence });
+      reviewHistory.push({ date: today, confidence, timeSpent: timeSpentNum });
 
       dbData.problems[idx] = {
         ...existing,
@@ -304,7 +309,7 @@ module.exports = {
     const today = todayStr();
     const nextInterval = computeNextInterval(confidence, existing.interval);
     const reviewHistory = Array.isArray(existing.reviewHistory) ? existing.reviewHistory : [];
-    reviewHistory.push({ date: today, confidence });
+    reviewHistory.push({ date: today, confidence, timeSpent: timeSpentNum });
 
     await problems.updateOne(
       { id: problemId, userId },
