@@ -21,16 +21,16 @@ export function isThisWeek(dateStr) {
   try {
     const date = new Date(dateStr + 'T00:00:00');
     const today = new Date();
-    
+
     const currentDay = today.getDay();
     const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1;
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - distanceToMonday);
     startOfWeek.setHours(0, 0, 0, 0);
-    
+
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 7);
-    
+
     return date >= startOfWeek && date < endOfWeek;
   } catch {
     return false;
@@ -43,16 +43,16 @@ export function isLastWeek(dateStr) {
   try {
     const date = new Date(dateStr + 'T00:00:00');
     const today = new Date();
-    
+
     const currentDay = today.getDay();
     const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1;
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - distanceToMonday);
     startOfWeek.setHours(0, 0, 0, 0);
-    
+
     const startOfLastWeek = new Date(startOfWeek);
     startOfLastWeek.setDate(startOfWeek.getDate() - 7);
-    
+
     return date >= startOfLastWeek && date < startOfWeek;
   } catch {
     return false;
@@ -77,10 +77,10 @@ export function isWithinLastNDays(dateStr, n) {
     const date = new Date(dateStr + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const cutoff = new Date(today);
     cutoff.setDate(today.getDate() - (n - 1));
-    
+
     return date >= cutoff && date <= today;
   } catch {
     return false;
@@ -94,13 +94,13 @@ export function isWithinDaysAgoRange(dateStr, startDaysAgo, endDaysAgo) {
     const date = new Date(dateStr + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const startCutoff = new Date(today);
     startCutoff.setDate(today.getDate() - endDaysAgo);
-    
+
     const endCutoff = new Date(today);
     endCutoff.setDate(today.getDate() - startDaysAgo);
-    
+
     return date >= startCutoff && date <= endCutoff;
   } catch {
     return false;
@@ -156,7 +156,7 @@ export function calculateTrendData(problems) {
  */
 export function calculateWeakestPatterns(problems) {
   if (!problems || problems.length === 0) return [];
-  
+
   const patternMap = {};
   problems.forEach(p => {
     const pattern = p.pattern || 'Other';
@@ -164,7 +164,7 @@ export function calculateWeakestPatterns(problems) {
     const lastReview = p.reviewHistory && p.reviewHistory.length > 0
       ? p.reviewHistory[p.reviewHistory.length - 1].confidence
       : 5;
-      
+
     if (!patternMap[pattern]) {
       patternMap[pattern] = { sum: 0, count: 0 };
     }
@@ -226,7 +226,7 @@ export function calculateWeeklyHours(problems, focusSessions) {
  */
 export function calculateStreak(problems, focusSessions) {
   const dates = new Set();
-  
+
   // Add problem log & review dates
   problems.forEach(p => {
     if (p.createdAt) dates.add(p.createdAt);
@@ -267,11 +267,54 @@ export function calculateStreak(problems, focusSessions) {
 }
 
 /**
+ * 4b. Highest Streak Ever
+ * Scans ALL activity dates (problem logs, reviews, focus sessions) and finds
+ * the longest run of consecutive days, even if that streak has since broken.
+ * This is calculated purely from real historical dates, not stored/estimated.
+ */
+export function calculateHighestStreak(problems, focusSessions) {
+  const dates = new Set();
+
+  problems.forEach(p => {
+    if (p.createdAt) dates.add(p.createdAt);
+    (p.reviewHistory || []).forEach(r => {
+      if (r.date) dates.add(r.date);
+    });
+  });
+
+  if (Array.isArray(focusSessions)) {
+    focusSessions.forEach(s => {
+      if (s.date) dates.add(s.date);
+    });
+  }
+
+  if (dates.size === 0) return 0;
+
+  // Sort ascending, then walk through counting consecutive-day runs
+  const sorted = Array.from(dates).sort((a, b) => a.localeCompare(b));
+  let longest = 1;
+  let current = 1;
+
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1];
+    const curr = sorted[i];
+    if (addDays(prev, 1) === curr) {
+      current += 1;
+      longest = Math.max(longest, current);
+    } else if (prev !== curr) {
+      current = 1;
+    }
+  }
+
+  return longest;
+}
+
+/**
  * 5. Additional Stats & Comparison Metrics
  */
 export function calculateAdditionalStats(problems) {
   const today = getTodayStr();
-  
+
   // A. Problems solved this week vs last week
   let solvedThisWeek = 0;
   let solvedLastWeek = 0;
@@ -312,7 +355,7 @@ export function calculateAdditionalStats(problems) {
     if (p.reviewHistory && p.reviewHistory.length > 0) {
       const first = p.reviewHistory[0].confidence;
       const latest = p.reviewHistory[p.reviewHistory.length - 1].confidence;
-      
+
       if (!topicRatings[pattern]) {
         topicRatings[pattern] = { firstSum: 0, latestSum: 0, count: 0 };
       }
@@ -341,7 +384,7 @@ export function calculateAdditionalStats(problems) {
   // D. Most Neglected Topic
   // Find the topic that hasn't had any activity (solve or review) for the longest time
   const topicLastActivity = {};
-  
+
   // Initialize with all unique patterns present in problems
   problems.forEach(p => {
     const pattern = p.pattern || 'Other';
@@ -356,7 +399,7 @@ export function calculateAdditionalStats(problems) {
         dates.push(r.date);
       }
     });
-    
+
     dates.forEach(dStr => {
       if (dStr) {
         if (!topicLastActivity[pattern] || dStr > topicLastActivity[pattern]) {

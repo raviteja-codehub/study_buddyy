@@ -22,13 +22,18 @@ function addDays(dateStr, days) {
   return d.toISOString().slice(0, 10);
 }
 
-// Spaced Repetition calculation (SM-2 simplified)
-const CONF_BASE = { 1: 1, 2: 2, 3: 4, 4: 7, 5: 14 };
-function computeNextInterval(confidence, prevInterval) {
-  const base = CONF_BASE[confidence] || 1;
-  if (!prevInterval) return base;
-  const mult = confidence >= 4 ? 1.7 : confidence === 3 ? 1.15 : 0.5;
-  return Math.min(90, Math.max(base, Math.round(prevInterval * mult)));
+// ---- 1-3-7 Spaced Revision Rule ----
+// Every problem must be revised exactly 3 times: 1 day, 3 days, and 7 days
+// after the day it was originally logged (measured from the ORIGINAL
+// createdAt date, not from the previous revision - this is the classic
+// definition of the 1-3-7 rule).
+const REVISION_STAGES = [1, 3, 7];
+
+// revisionStage: 0 = nothing revised yet (Day-1 due next), 1 = Day-1 done
+// (Day-3 due next), 2 = Day-3 done (Day-7 due next), 3 = Day-7 done -> Mastered
+function computeNextReviewDate(createdAt, revisionStage) {
+  if (revisionStage >= REVISION_STAGES.length) return null;
+  return addDays(createdAt, REVISION_STAGES[revisionStage]);
 }
 
 // Compute streak count from history logs
@@ -69,10 +74,14 @@ function AppContent() {
   const [loadingProblems, setLoadingProblems] = useState(true);
   const [view, setView] = useState('dashboard');
   const [editingId, setEditingId] = useState(null);
-  
+
   // Specific problem review redirection state
   const [reviewProblemId, setReviewProblemId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Floating "Log Problem" bubble - lets the user add a problem from ANY page
+  // without navigating away from what they're currently looking at.
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   // Sync data fetch
   const fetchProblems = useCallback(async () => {
@@ -130,11 +139,14 @@ function AppContent() {
   }, [problems]);
 
   // CRUD Implementations
-  const handleSaveNew = async (data) => {
+  // `redirect` = true navigates to the Problems Log page after saving (used by
+  // the full "form" page view). When called from the floating quick-add bubble
+  // we pass redirect=false so the user stays exactly where they were.
+  const handleSaveNew = async (data, redirect = true) => {
     try {
       if (useLocalOnly || user?.isOfflineMode) {
         const now = todayStr();
-        const interval = computeNextInterval(data.confidence, null);
+        const revisionStage = 0;
         const newProb = {
           id: 'p_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
           title: data.title,
@@ -146,9 +158,10 @@ function AppContent() {
           mistakes: data.mistakes || '',
           summary: data.summary || null,
           createdAt: now,
-          interval,
-          nextReview: addDays(now, interval),
-          reviewHistory: data.confidence ? [{ date: now, confidence: data.confidence, timeSpent: Number(data.timeSpent) || 0 }] : [],
+          revisionStage,
+          mastered: false,
+          nextReview: computeNextReviewDate(now, revisionStage),
+          reviewHistory: data.confidence ? [{ date: now, confidence: data.confidence, timeSpent: Number(data.timeSpent) || 0, stage: 0 }] : [],
           timeSpent: Number(data.timeSpent) || 0
         };
         const updated = [newProb, ...problems];
@@ -163,11 +176,17 @@ function AppContent() {
         if (!res.ok) throw new Error('Failed to create problem on server');
         await fetchProblems();
       }
-      setView('problems');
+      if (redirect) setView('problems');
     } catch (e) {
       console.error(e);
       alert('Save failed: ' + e.message);
     }
+  };
+
+  // Handler used exclusively by the floating "Log Problem" bubble
+  const handleQuickAdd = async (data) => {
+    await handleSaveNew(data, false);
+    setQuickAddOpen(false);
   };
 
   const handleSaveEdit = async (data) => {
@@ -230,12 +249,14 @@ function AppContent() {
         const today = todayStr();
         const updated = problems.map(p => {
           if (p.id !== id) return p;
-          const interval = computeNextInterval(confidence, p.interval);
+          const prevStage = p.revisionStage || 0;
+          const nextStage = Math.min(REVISION_STAGES.length, prevStage + 1);
           return {
             ...p,
-            interval,
-            nextReview: addDays(today, interval),
-            reviewHistory: [...(p.reviewHistory || []), { date: today, confidence, timeSpent: Number(timeSpent) || 0 }]
+            revisionStage: nextStage,
+            mastered: nextStage >= REVISION_STAGES.length,
+            nextReview: computeNextReviewDate(p.createdAt, nextStage),
+            reviewHistory: [...(p.reviewHistory || []), { date: today, confidence, timeSpent: Number(timeSpent) || 0, stage: prevStage }]
           };
         });
         setProblems(updated);
@@ -383,35 +404,42 @@ function AppContent() {
             </span>
           </div>
 
-          {/* Action button */}
-          <button
-            onClick={() => { setEditingId(null); navigateTo('form'); }}
-            className="btn-primary"
-            style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: 6, padding: '11px 18px' }}
-          >
-            <Plus size={14} /> Log Problem
-          </button>
-
           {/* Navigation list */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
-            <button 
-              onClick={() => navigateTo('dashboard')} 
+            <button
+              onClick={() => navigateTo('dashboard')}
               className={`nav-item ${view === 'dashboard' ? 'active' : ''}`}
             >
               <LayoutDashboard size={16} />
               <span>Dashboard</span>
             </button>
-            
-            <button 
-              onClick={() => navigateTo('problems')} 
+
+            <button
+              onClick={() => navigateTo('problems')}
               className={`nav-item ${view === 'problems' ? 'active' : ''}`}
             >
               <ListChecks size={16} />
               <span>Problems Log</span>
             </button>
 
-            <button 
-              onClick={() => navigateTo('queue')} 
+            <button
+              onClick={() => navigateTo('focus_timer')}
+              className={`nav-item ${view === 'focus_timer' ? 'active' : ''}`}
+            >
+              <Timer size={16} />
+              <span>Focus Timer</span>
+            </button>
+
+            <button
+              onClick={() => navigateTo('performance')}
+              className={`nav-item ${view === 'performance' ? 'active' : ''}`}
+            >
+              <TrendingUp size={16} />
+              <span>Performance</span>
+            </button>
+
+            <button
+              onClick={() => navigateTo('queue')}
               className={`nav-item ${view === 'queue' ? 'active' : ''}`}
             >
               <ClipboardList size={16} />
@@ -431,24 +459,8 @@ function AppContent() {
               )}
             </button>
 
-            <button 
-              onClick={() => navigateTo('focus_timer')} 
-              className={`nav-item ${view === 'focus_timer' ? 'active' : ''}`}
-            >
-              <Timer size={16} />
-              <span>Focus Timer</span>
-            </button>
-
-            <button 
-              onClick={() => navigateTo('performance')} 
-              className={`nav-item ${view === 'performance' ? 'active' : ''}`}
-            >
-              <TrendingUp size={16} />
-              <span>Performance</span>
-            </button>
-
-            <button 
-              onClick={() => navigateTo('settings')} 
+            <button
+              onClick={() => navigateTo('settings')}
               className={`nav-item ${view === 'settings' ? 'active' : ''}`}
             >
               <SettingsIcon size={16} />
@@ -511,41 +523,41 @@ function AppContent() {
           ) : (
             <>
               {view === 'dashboard' && (
-                <Dashboard 
-                  problems={problems} 
-                  streak={streak} 
-                  onGoQueue={() => setView('queue')} 
-                  onGoAdd={() => { setEditingId(null); setView('form'); }} 
+                <Dashboard
+                  problems={problems}
+                  streak={streak}
+                  onGoQueue={() => setView('queue')}
+                  onGoAdd={() => { setEditingId(null); setView('form'); }}
                 />
               )}
               {view === 'problems' && (
-                <ProblemList 
-                  problems={problems} 
-                  onEdit={openEdit} 
-                  onDelete={handleDelete} 
-                  onAdd={() => { setEditingId(null); setView('form'); }} 
+                <ProblemList
+                  problems={problems}
+                  onEdit={openEdit}
+                  onDelete={handleDelete}
+                  onAdd={() => { setEditingId(null); setView('form'); }}
                   onDirectReview={openDirectReview}
                 />
               )}
               {view === 'queue' && (
-                <RevisionQueue 
-                  problems={problems} 
-                  onRate={handleRate} 
+                <RevisionQueue
+                  problems={problems}
+                  onRate={handleRate}
                   activeProblemId={reviewProblemId}
-                  onBack={() => { setView('dashboard'); setReviewProblemId(null); }} 
+                  onBack={() => { setView('dashboard'); setReviewProblemId(null); }}
                 />
               )}
               {view === 'form' && (
-                <ProblemForm 
-                  initial={activeEditingProblem} 
-                  onSave={activeEditingProblem ? handleSaveEdit : handleSaveNew} 
-                  onCancel={() => { setEditingId(null); setView(activeEditingProblem ? 'problems' : 'dashboard'); }} 
+                <ProblemForm
+                  initial={activeEditingProblem}
+                  onSave={activeEditingProblem ? handleSaveEdit : handleSaveNew}
+                  onCancel={() => { setEditingId(null); setView(activeEditingProblem ? 'problems' : 'dashboard'); }}
                 />
               )}
               {view === 'settings' && (
-                <Settings 
-                  problems={problems} 
-                  onImportData={handleImportBackup} 
+                <Settings
+                  problems={problems}
+                  onImportData={handleImportBackup}
                 />
               )}
               {view === 'focus_timer' && (
@@ -558,6 +570,81 @@ function AppContent() {
           )}
         </div>
       </div>
+
+      {/* Floating "Log Problem" bubble - visible on every page */}
+      {view !== 'form' && (
+        <button
+          onClick={() => setQuickAddOpen(true)}
+          className="sb-fab"
+          title="Log a new problem"
+          aria-label="Log a new problem"
+          style={{
+            position: 'fixed',
+            bottom: 28,
+            right: 28,
+            width: 56,
+            height: 56,
+            borderRadius: '50%',
+            background: 'var(--grad-frost)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: 'none',
+            cursor: 'pointer',
+            boxShadow: '0 6px 24px rgba(56, 189, 248, 0.35), 0 2px 8px rgba(0,0,0,0.3)',
+            zIndex: 40,
+            transition: 'transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out)'
+          }}
+        >
+          <Plus size={26} color="#09090b" strokeWidth={2.5} />
+        </button>
+      )}
+
+      {/* Quick-add modal triggered by the floating bubble */}
+      {quickAddOpen && (
+        <div
+          onClick={() => setQuickAddOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(5, 5, 7, 0.7)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 50,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20,
+            animation: 'fadeInFast 0.2s ease forwards'
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: 640,
+              maxHeight: '88vh',
+              overflowY: 'auto',
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-xl)',
+              padding: '28px 28px 8px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <h3 className="mono" style={{ fontSize: 16, fontWeight: 800 }}>Quick Log Problem</h3>
+              <button className="btn-ghost" onClick={() => setQuickAddOpen(false)} style={{ padding: 6 }} title="Close">
+                <X size={16} />
+              </button>
+            </div>
+            <ProblemForm
+              initial={null}
+              onSave={handleQuickAdd}
+              onCancel={() => setQuickAddOpen(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

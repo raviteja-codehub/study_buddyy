@@ -1,35 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/ui/Card';
-import { 
-  TrendingUp, 
-  BarChart2, 
-  Flame, 
-  Award, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  Edit2, 
-  Check, 
-  Clock, 
+import {
+  TrendingUp,
+  BarChart2,
+  Flame,
+  Award,
+  Trophy,
+  ArrowUpRight,
+  ArrowDownRight,
+  Edit2,
+  Check,
+  Clock,
   Sparkles,
   BookOpen
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  CartesianGrid, 
-  BarChart, 
-  Bar 
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  BarChart,
+  Bar
 } from 'recharts';
 import {
   calculateTrendData,
   calculateWeakestPatterns,
   calculateWeeklyHours,
   calculateStreak,
+  calculateHighestStreak,
   calculateAdditionalStats,
   hasAnyData
 } from '../utils/analytics';
@@ -37,7 +39,7 @@ import {
 export default function Performance({ problems = [] }) {
   const { user, updateProfile } = useAuth();
   const [focusSessions, setFocusSessions] = useState([]);
-  
+
   // Hours goal editing state
   const [hoursGoalInput, setHoursGoalInput] = useState(user?.hoursGoal || 10);
   const [isEditingGoal, setIsEditingGoal] = useState(false);
@@ -82,6 +84,7 @@ export default function Performance({ problems = [] }) {
   const weakestPatterns = calculateWeakestPatterns(problems);
   const hours = calculateWeeklyHours(problems, focusSessions);
   const streakInfo = calculateStreak(problems, focusSessions);
+  const highestStreak = calculateHighestStreak(problems, focusSessions);
   const stats = calculateAdditionalStats(problems, focusSessions);
   const hasData = hasAnyData(problems, focusSessions);
 
@@ -106,7 +109,7 @@ export default function Performance({ problems = [] }) {
             Deep-dive analysis of your revision history, confidence trends, and goals.
           </p>
         </div>
-        
+
         <div style={{
           textAlign: 'center',
           padding: '80px 24px',
@@ -133,7 +136,7 @@ export default function Performance({ problems = [] }) {
           </div>
           <h3 className="mono" style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>No Analytics Data Found</h3>
           <p style={{ fontSize: 14, color: 'var(--text-muted)', maxWidth: 400, margin: '0 auto 24px', lineHeight: 1.6 }}>
-            You haven't logged any solved problems or completed any focus timer sessions yet. 
+            You haven't logged any solved problems or completed any focus timer sessions yet.
             Once you log problems or start studying, your confidence trends and stats will appear here.
           </p>
         </div>
@@ -189,6 +192,40 @@ export default function Performance({ problems = [] }) {
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-faint)' }}>
               {streakInfo.lastActive ? `Last Active: ${streakInfo.lastActive}` : 'No active study logged'}
+            </div>
+          </div>
+        </div>
+
+        {/* Highest Streak Ever card */}
+        <div style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
+          <div style={{
+            width: 46,
+            height: 46,
+            borderRadius: '12px',
+            background: 'rgba(250, 204, 21, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: '1px solid rgba(250, 204, 21, 0.2)'
+          }}>
+            <Trophy size={22} color="#facc15" style={{ filter: 'drop-shadow(0 0 8px rgba(250,204,21,0.3))' }} />
+          </div>
+          <div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600' }}>Highest Streak</div>
+            <div className="mono" style={{ fontSize: '20px', fontWeight: '800', color: '#fff', margin: '2px 0' }}>
+              {highestStreak} {highestStreak === 1 ? 'Day' : 'Days'}
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--text-faint)' }}>
+              {highestStreak > streakInfo.count ? 'Personal best, keep pushing' : 'You are at your best streak now!'}
             </div>
           </div>
         </div>
@@ -267,18 +304,18 @@ export default function Performance({ problems = [] }) {
       </div>
 
       {/* Goal Progress Card */}
-      <Card 
-        title="Weekly Goal Tracking" 
+      <Card
+        title="Weekly Goal Tracking"
         subtitle="Track active preparation hours completed in the current week."
         headerActions={
           isEditingGoal ? (
             <form onSubmit={handleSaveGoal} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <input 
-                type="number" 
-                min="1" 
-                max="80" 
-                value={hoursGoalInput} 
-                onChange={e => setHoursGoalInput(e.target.value)} 
+              <input
+                type="number"
+                min="1"
+                max="80"
+                value={hoursGoalInput}
+                onChange={e => setHoursGoalInput(e.target.value)}
                 disabled={savingGoal}
                 style={{
                   width: '60px',
@@ -291,17 +328,17 @@ export default function Performance({ problems = [] }) {
                   textAlign: 'center'
                 }}
               />
-              <button 
-                type="submit" 
-                className="btn-primary" 
-                disabled={savingGoal} 
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={savingGoal}
                 style={{ padding: '6px 12px', fontSize: '11.5px', borderRadius: 'var(--radius-xs)' }}
               >
                 {savingGoal ? '...' : <Check size={13} />}
               </button>
-              <button 
-                type="button" 
-                className="btn-secondary" 
+              <button
+                type="button"
+                className="btn-secondary"
                 onClick={() => { setIsEditingGoal(false); setHoursGoalInput(user?.hoursGoal || 10); }}
                 style={{ padding: '6px 12px', fontSize: '11.5px', borderRadius: 'var(--radius-xs)' }}
               >
@@ -309,8 +346,8 @@ export default function Performance({ problems = [] }) {
               </button>
             </form>
           ) : (
-            <button 
-              className="btn-ghost" 
+            <button
+              className="btn-ghost"
               onClick={() => setIsEditingGoal(true)}
               style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', padding: '6px 10px' }}
             >
@@ -343,9 +380,9 @@ export default function Performance({ problems = [] }) {
               boxShadow: 'var(--glow-frost)'
             }} />
           </div>
-          <div style={{ 
-            fontSize: '11.5px', 
-            color: 'var(--text-faint)', 
+          <div style={{
+            fontSize: '11.5px',
+            color: 'var(--text-faint)',
             marginTop: '4px',
             display: 'flex',
             alignItems: 'center',
@@ -385,7 +422,7 @@ export default function Performance({ problems = [] }) {
               {stats.mostImprovedTopic}
             </div>
             <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-              {stats.mostImprovedTopic !== 'None' 
+              {stats.mostImprovedTopic !== 'None'
                 ? 'Topic showing the largest upward shift between initial solve confidence and latest recall ratings.'
                 : 'Insufficient recall ratings history to compute improvement rates.'}
             </div>
@@ -414,10 +451,10 @@ export default function Performance({ problems = [] }) {
               {stats.mostNeglectedTopic}
             </div>
             <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-              {stats.mostNeglectedTopic !== 'None' 
-                ? (stats.daysSinceNeglected === Infinity 
-                    ? 'Contains solved problems that have never been revised.' 
-                    : `Topic with no study activity (solve or revision) in the longest time (${stats.daysSinceNeglected} days ago).`)
+              {stats.mostNeglectedTopic !== 'None'
+                ? (stats.daysSinceNeglected === Infinity
+                  ? 'Contains solved problems that have never been revised.'
+                  : `Topic with no study activity (solve or revision) in the longest time (${stats.daysSinceNeglected} days ago).`)
                 : 'No problems logged yet.'}
             </div>
           </div>
@@ -449,19 +486,19 @@ export default function Performance({ problems = [] }) {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="formattedDate" stroke="var(--text-faint)" fontSize={11} />
                   <YAxis domain={[1, 5]} stroke="var(--text-faint)" fontSize={11} ticks={[1, 2, 3, 4, 5]} />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px' }}
                     labelStyle={{ color: '#fff' }}
                     itemStyle={{ color: 'var(--frost)' }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="avgConfidence" 
+                  <Line
+                    type="monotone"
+                    dataKey="avgConfidence"
                     name="Average Recall"
-                    stroke="var(--frost)" 
-                    strokeWidth={2} 
-                    activeDot={{ r: 6 }} 
-                    dot={{ r: 3 }} 
+                    stroke="var(--frost)"
+                    strokeWidth={2}
+                    activeDot={{ r: 6 }}
+                    dot={{ r: 3 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -485,17 +522,17 @@ export default function Performance({ problems = [] }) {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
                   <XAxis type="number" domain={[0, 5]} stroke="var(--text-faint)" fontSize={11} ticks={[1, 2, 3, 4, 5]} />
                   <YAxis dataKey="displayName" type="category" stroke="var(--text-faint)" fontSize={11} width={110} />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px' }}
                     labelStyle={{ color: '#fff' }}
                     itemStyle={{ color: 'var(--ember)' }}
                     formatter={(value) => [`${value} average`, 'Confidence']}
                   />
-                  <Bar 
-                    dataKey="avgConfidence" 
-                    fill="var(--danger)" 
-                    radius={[0, 4, 4, 0]} 
-                    barSize={12} 
+                  <Bar
+                    dataKey="avgConfidence"
+                    fill="var(--danger)"
+                    radius={[0, 4, 4, 0]}
+                    barSize={12}
                   />
                 </BarChart>
               </ResponsiveContainer>

@@ -59,12 +59,20 @@ async function initialize() {
   }
 }
 
-function computeNextInterval(confidence, prevInterval) {
-  const CONF_BASE = { 1: 1, 2: 2, 3: 4, 4: 7, 5: 14 };
-  const base = CONF_BASE[confidence] || 1;
-  if (!prevInterval) return base;
-  const mult = confidence >= 4 ? 1.7 : confidence === 3 ? 1.15 : 0.5;
-  return Math.min(90, Math.max(base, Math.round(prevInterval * mult)));
+// ---- 1-3-7 Spaced Revision Rule ----
+// Every problem must be revised exactly 3 times: 1 day, 3 days, and 7 days
+// after the day it was originally logged. All intervals are counted from the
+// ORIGINAL createdAt date (not from the previous revision), which is the
+// classic definition of the 1-3-7 rule.
+const REVISION_STAGES = [1, 3, 7];
+
+// Given the createdAt date and the current revisionStage (0 = nothing done
+// yet, 1 = Day-1 done, 2 = Day-3 done, 3 = Day-7 done / mastered), returns
+// the date string of the NEXT due revision, or null if the problem is fully
+// mastered (all 3 stages complete).
+function computeNextReviewDate(createdAt, revisionStage) {
+  if (revisionStage >= REVISION_STAGES.length) return null;
+  return addDays(createdAt, REVISION_STAGES[revisionStage]);
 }
 
 function addDays(dateStr, days) {
@@ -125,7 +133,7 @@ module.exports = {
       writeJsonDb(data);
       return newUser;
     }
-    
+
     const newUser = {
       id: 'u_' + Math.random().toString(36).slice(2, 11),
       username,
@@ -144,11 +152,11 @@ module.exports = {
       const data = readJsonDb();
       const idx = data.users.findIndex(u => u.id === userId);
       if (idx === -1) return null;
-      
+
       const user = data.users[idx];
       const targetCompany = updates.targetCompany !== undefined ? updates.targetCompany : user.targetCompany;
       const hoursGoal = updates.hoursGoal !== undefined ? Number(updates.hoursGoal) : user.hoursGoal;
-      
+
       data.users[idx] = {
         ...user,
         targetCompany,
@@ -188,8 +196,8 @@ module.exports = {
   async createProblem(userId, data) {
     await initialize();
     const now = todayStr();
-    const interval = computeNextInterval(data.confidence || 5, null);
     const timeSpent = data.timeSpent !== undefined ? Number(data.timeSpent) : 0;
+    const revisionStage = 0; // nothing revised yet -> Day 1 is the next due date
     const newProblem = {
       id: 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       userId,
@@ -202,9 +210,10 @@ module.exports = {
       mistakes: data.mistakes || '',
       summary: data.summary || null,
       createdAt: now,
-      interval,
-      nextReview: addDays(now, interval),
-      reviewHistory: data.confidence ? [{ date: now, confidence: data.confidence, timeSpent }] : [],
+      revisionStage,
+      mastered: false,
+      nextReview: computeNextReviewDate(now, revisionStage),
+      reviewHistory: data.confidence ? [{ date: now, confidence: data.confidence, timeSpent, stage: 0 }] : [],
       timeSpent,
     };
 
@@ -289,14 +298,16 @@ module.exports = {
 
       const existing = dbData.problems[idx];
       const today = todayStr();
-      const nextInterval = computeNextInterval(confidence, existing.interval);
+      const prevStage = existing.revisionStage || 0;
+      const nextStage = Math.min(REVISION_STAGES.length, prevStage + 1);
       const reviewHistory = Array.isArray(existing.reviewHistory) ? existing.reviewHistory : [];
-      reviewHistory.push({ date: today, confidence, timeSpent: timeSpentNum });
+      reviewHistory.push({ date: today, confidence, timeSpent: timeSpentNum, stage: prevStage });
 
       dbData.problems[idx] = {
         ...existing,
-        interval: nextInterval,
-        nextReview: addDays(today, nextInterval),
+        revisionStage: nextStage,
+        mastered: nextStage >= REVISION_STAGES.length,
+        nextReview: computeNextReviewDate(existing.createdAt, nextStage),
         reviewHistory,
       };
       writeJsonDb(dbData);
@@ -307,16 +318,18 @@ module.exports = {
     if (!existing) return null;
 
     const today = todayStr();
-    const nextInterval = computeNextInterval(confidence, existing.interval);
+    const prevStage = existing.revisionStage || 0;
+    const nextStage = Math.min(REVISION_STAGES.length, prevStage + 1);
     const reviewHistory = Array.isArray(existing.reviewHistory) ? existing.reviewHistory : [];
-    reviewHistory.push({ date: today, confidence, timeSpent: timeSpentNum });
+    reviewHistory.push({ date: today, confidence, timeSpent: timeSpentNum, stage: prevStage });
 
     await problems.updateOne(
       { id: problemId, userId },
       {
         $set: {
-          interval: nextInterval,
-          nextReview: addDays(today, nextInterval),
+          revisionStage: nextStage,
+          mastered: nextStage >= REVISION_STAGES.length,
+          nextReview: computeNextReviewDate(existing.createdAt, nextStage),
           reviewHistory,
         },
       }
