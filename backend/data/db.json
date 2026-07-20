@@ -47,9 +47,69 @@
       "targetCompany": "hi",
       "hoursGoal": 10,
       "createdAt": "2026-07-15T17:09:57.584Z"
+    },
+    {
+      "id": "u_o4itendz3",
+      "username": "ravitech",
+      "passwordHash": "$2a$10$yP5M8KyD.3hNPVXaPphzmOkRv.cq7gz1bDJ9c3ZOYCdrLysrZfGi6",
+      "targetCompany": "google",
+      "hoursGoal": 10,
+      "createdAt": "2026-07-20T11:30:30.563Z"
     }
   ],
   "problems": [
+    {
+      "id": "p_mrt59bz2azkb",
+      "userId": "u_o4itendz3",
+      "title": "2 sum",
+      "link": "https://leetcode.com/problems/two-sum/",
+      "description": "",
+      "pattern": "Math",
+      "difficulty": "Easy",
+      "notes": "",
+      "mistakes": "",
+      "summary": null,
+      "createdAt": "2026-07-20",
+      "interval": 14,
+      "nextReview": "2026-08-02",
+      "reviewHistory": [
+        {
+          "date": "2026-07-20",
+          "confidence": 5,
+          "timeSpent": 0
+        }
+      ],
+      "timeSpent": 0
+    },
+    {
+      "id": "p_mrt55yhd68ko",
+      "userId": "u_1yucrojtc",
+      "title": "2 sum",
+      "link": "https://leetcode.com/problems/two-sum/",
+      "description": "1st problem on leetcode",
+      "pattern": "Other",
+      "difficulty": "Easy",
+      "notes": "",
+      "mistakes": "",
+      "summary": {
+        "pattern": "Other",
+        "keyInsight": "Break down the input size, identify redundant work, and optimize using appropriate data structures.",
+        "timeComplexity": "O(N)",
+        "spaceComplexity": "O(1)",
+        "summary": "Analyzed title and description context. Recommended pattern: Other. Solve by traversing elements and managing state efficiently."
+      },
+      "createdAt": "2026-07-20",
+      "interval": 14,
+      "nextReview": "2026-08-02",
+      "reviewHistory": [
+        {
+          "date": "2026-07-20",
+          "confidence": 5,
+          "timeSpent": 5
+        }
+      ],
+      "timeSpent": 5
+    },
     {
       "id": "p_mrdx1caml9g16u",
       "userId": "u_ha0byi7ak",
