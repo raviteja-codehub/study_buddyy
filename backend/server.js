@@ -21,7 +21,9 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 let mailTransporter = null;
 if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
   mailTransporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_APP_PASSWORD
