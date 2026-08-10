@@ -27,7 +27,8 @@ if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_APP_PASSWORD
-    }
+    },
+    family: 4 // Force IPv4, avoids issues on some systems
   });
 }
 
