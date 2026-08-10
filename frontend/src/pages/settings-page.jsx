@@ -1,15 +1,22 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Key, Save, Download, Upload, LogOut, Info, ShieldCheck, Database, RefreshCw, Plus, Minus, Repeat } from 'lucide-react';
+import { Key, Save, Download, Upload, LogOut, Info, ShieldCheck, Database, RefreshCw, Plus, Minus, Repeat, Mail } from 'lucide-react';
 
 const DEFAULT_REVISION_PATTERN = [1, 3, 7];
 
 export default function Settings({ problems, onImportData }) {
-  const { user, logout, updateProfile, updateRevisionPattern, geminiKey, setGeminiKey, useLocalOnly } = useAuth();
+  const { user, logout, updateProfile, updateRevisionPattern, updateEmail, geminiKey, setGeminiKey, useLocalOnly } = useAuth();
   
   const [targetCompany, setTargetCompany] = useState(user?.targetCompany || '');
   const [hoursGoal, setHoursGoal] = useState(user?.hoursGoal || 10);
   const [localKey, setLocalKey] = useState(geminiKey || '');
+
+  // Email — used for "Forgot Password". Accounts created before this
+  // feature existed may not have one set yet, so this doubles as an
+  // "add email" prompt for older accounts.
+  const [email, setEmail] = useState(user?.email || '');
+  const [emailMsg, setEmailMsg] = useState('');
+  const [emailError, setEmailError] = useState('');
 
   // Revision pattern draft state - number of stages (1-5) and each stage's
   // day-offset. Only applies to problems logged AFTER saving; existing
@@ -93,6 +100,26 @@ export default function Settings({ problems, onImportData }) {
       setTimeout(() => setProfileMsg(''), 3000);
     } catch (err) {
       setProfileMsg('Failed to update profile.');
+    }
+  };
+
+  const handleSaveEmail = async (e) => {
+    e.preventDefault();
+    setEmailMsg('');
+    setEmailError('');
+
+    const trimmed = email.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailError('Enter a valid email address.');
+      return;
+    }
+
+    try {
+      await updateEmail(trimmed);
+      setEmailMsg('Email saved. You can now use "Forgot password?" on the login screen.');
+      setTimeout(() => setEmailMsg(''), 4000);
+    } catch (err) {
+      setEmailError(err.message || 'Failed to update email.');
     }
   };
 
@@ -187,7 +214,37 @@ export default function Settings({ problems, onImportData }) {
         <h4 className="mono" style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', paddingBottom: 10, letterSpacing: '0.02em' }}>
           Profile Goals
         </h4>
-        <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+        {/* Account Email - used for password reset */}
+        <form onSubmit={handleSaveEmail} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
+            Account Email
+          </label>
+          {!user?.email && (
+            <span style={{ fontSize: 11.5, color: 'var(--ember)', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Info size={12} /> No email on file yet — add one to enable "Forgot password?" on the login screen.
+            </span>
+          )}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: '1 1 220px' }}>
+              <Mail size={14} color="var(--text-faint)" style={{ position: 'absolute', left: 12, top: 13 }} />
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                style={{ paddingLeft: 34, width: '100%' }}
+              />
+            </div>
+            <button type="submit" className="btn-secondary" style={{ display: 'flex', gap: 6, padding: '8px 14px', whiteSpace: 'nowrap' }}>
+              <Save size={13} /> Save Email
+            </button>
+          </div>
+          {emailMsg && <span style={{ fontSize: 12, color: 'var(--signal)' }}>{emailMsg}</span>}
+          {emailError && <span style={{ fontSize: 12, color: 'var(--danger)' }}>{emailError}</span>}
+        </form>
+
+        <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
