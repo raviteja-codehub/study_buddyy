@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Brain, Sparkles, Building, Clock, Lock, User, TriangleAlert as AlertTriangle } from 'lucide-react';
+import { Brain, Sparkles, Building, Clock, Lock, User, Mail, TriangleAlert as AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 const MOTIVATIONS = [
   "Consistency beats intensity. One problem a day keeps the rejection away.",
@@ -11,15 +11,23 @@ const MOTIVATIONS = [
 ];
 
 export default function LoginPage() {
-  const { login, register, error: authError } = useAuth();
+  const { login, register, forgotPassword, error: authError } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
   const [targetCompany, setTargetCompany] = useState('');
   const [hoursGoal, setHoursGoal] = useState(10);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [motivation, setMotivation] = useState('');
+
+  // Forgot-password mini-flow, shown instead of the sign-in/register form.
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
 
   useEffect(() => {
     const idx = Math.floor(Math.random() * MOTIVATIONS.length);
@@ -32,6 +40,10 @@ export default function LoginPage() {
       setError('Please fill in all credentials.');
       return;
     }
+    if (!isLogin && !email.trim()) {
+      setError('Email is required (used for password reset).');
+      return;
+    }
 
     setError('');
     setLoading(true);
@@ -39,13 +51,38 @@ export default function LoginPage() {
       if (isLogin) {
         await login(username.trim(), password.trim());
       } else {
-        await register(username.trim(), password.trim(), targetCompany.trim(), hoursGoal);
+        await register(username.trim(), password.trim(), targetCompany.trim(), hoursGoal, email.trim());
       }
     } catch (err) {
       setError(err.message || 'Authentication failed. Please verify credentials.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      setForgotError('Enter the email you registered with.');
+      return;
+    }
+    setForgotError('');
+    setForgotLoading(true);
+    try {
+      const message = await forgotPassword(forgotEmail.trim());
+      setForgotSuccess(message || 'If an account with that email exists, a reset link has been sent.');
+    } catch (err) {
+      setForgotError(err.message || 'Could not send reset email. Try again later.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const backToSignIn = () => {
+    setShowForgot(false);
+    setForgotEmail('');
+    setForgotError('');
+    setForgotSuccess('');
   };
 
   return (
@@ -127,10 +164,78 @@ export default function LoginPage() {
             STUDY BUDDY
           </h2>
           <span style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 6, fontWeight: 500 }}>
-            DSA Spaced-Repetition Revision Hub
+            {showForgot ? 'Reset your password' : 'DSA Spaced-Repetition Revision Hub'}
           </span>
         </div>
 
+        {showForgot ? (
+          <>
+            {(forgotError) && (
+              <div className="sb-fade-in-fast" style={{
+                background: 'var(--danger-dim)',
+                border: '1px solid rgba(248, 113, 113, 0.2)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '11px 14px',
+                marginBottom: 18,
+                display: 'flex',
+                gap: 8,
+                alignItems: 'center'
+              }}>
+                <AlertTriangle size={15} color="var(--danger)" style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: 12.5, color: 'var(--danger)', lineHeight: 1.4 }}>{forgotError}</span>
+              </div>
+            )}
+
+            {forgotSuccess ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center', padding: '10px 0 4px' }}>
+                <CheckCircle2 size={30} color="var(--signal)" />
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>{forgotSuccess}</p>
+                <button onClick={backToSignIn} className="btn-secondary" style={{ width: '100%', padding: '11px 0', marginTop: 4 }}>
+                  Back to Sign In
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <p style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: 4 }}>
+                  Enter the email on your account. If it matches, we'll send a password reset link.
+                </p>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, letterSpacing: '0.02em' }}>
+                    Email
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Mail size={14} color="var(--text-faint)" style={{ position: 'absolute', left: 12, top: 13 }} />
+                    <input
+                      type="email"
+                      value={forgotEmail}
+                      onChange={e => setForgotEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      style={{ paddingLeft: 34 }}
+                      required
+                    />
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={forgotLoading}
+                  style={{ width: '100%', padding: '13px 0', marginTop: 6, fontSize: 14 }}
+                >
+                  {forgotLoading ? 'Sending...' : 'Send Reset Link'}
+                </button>
+                <button
+                  type="button"
+                  onClick={backToSignIn}
+                  className="btn-secondary"
+                  style={{ width: '100%', padding: '11px 0' }}
+                >
+                  Back to Sign In
+                </button>
+              </form>
+            )}
+          </>
+        ) : (
+        <>
         {/* Tab Selection */}
         <div style={{
           display: 'flex',
@@ -216,9 +321,20 @@ export default function LoginPage() {
 
           {/* Password */}
           <div>
-            <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, letterSpacing: '0.02em' }}>
-              Password
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.02em' }}>
+                Password
+              </label>
+              {isLogin && (
+                <button
+                  type="button"
+                  onClick={() => { setShowForgot(true); setError(''); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 11.5, color: 'var(--frost)', fontWeight: 600 }}
+                >
+                  Forgot password?
+                </button>
+              )}
+            </div>
             <div style={{ position: 'relative' }}>
               <Lock size={14} color="var(--text-faint)" style={{ position: 'absolute', left: 12, top: 13 }} />
               <input
@@ -235,6 +351,26 @@ export default function LoginPage() {
           {/* Additional details for Register */}
           {!isLogin && (
             <div className="sb-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, letterSpacing: '0.02em' }}>
+                  Email
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={14} color="var(--text-faint)" style={{ position: 'absolute', left: 12, top: 13 }} />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    style={{ paddingLeft: 34 }}
+                    required
+                  />
+                </div>
+                <span style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4, display: 'block' }}>
+                  Used only for password reset.
+                </span>
+              </div>
+
               <div>
                 <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, letterSpacing: '0.02em' }}>
                   Target Company
@@ -279,6 +415,8 @@ export default function LoginPage() {
             {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
           </button>
         </form>
+        </>
+        )}
 
         {/* Motivation line decoration */}
         <div style={{

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/login-page';
+import ResetPasswordPage from './pages/reset-password-page';
 import Dashboard from './pages/dashboard-page';
 import ProblemList from './pages/problems-log-page';
 import RevisionQueue from './pages/revision-queue-page';
@@ -666,6 +667,14 @@ function AppContent() {
 
 export default function App() {
   const { user, loading } = useAuth();
+
+  // A password-reset email link lands here with ?reset_token=... - show
+  // the reset form regardless of login/loading state, since it doesn't
+  // require an active session.
+  const resetToken = new URLSearchParams(window.location.search).get('reset_token');
+  if (resetToken) {
+    return <ResetPasswordPage token={resetToken} />;
+  }
 
   if (loading) {
     return (

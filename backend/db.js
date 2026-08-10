@@ -50,6 +50,7 @@ async function initialize() {
     problems = db.collection('problems');
 
     await users.createIndex({ username: 1 }, { unique: true, collation: { locale: 'en', strength: 2 } });
+    await users.createIndex({ email: 1 }, { unique: true, sparse: true, collation: { locale: 'en', strength: 2 } });
     await problems.createIndex({ userId: 1 });
     await problems.createIndex({ id: 1 }, { unique: true });
     console.log('Successfully connected to MongoDB Atlas.');
@@ -133,7 +134,17 @@ module.exports = {
     return users.findOne({ username: { $regex: `^${username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } });
   },
 
-  async createUser(username, passwordHash, targetCompany = '', hoursGoal = 10) {
+  async getUserByEmail(email) {
+    await initialize();
+    if (!email) return null;
+    if (isFallback) {
+      const data = readJsonDb();
+      return data.users.find(u => u.email && u.email.toLowerCase() === email.toLowerCase()) || null;
+    }
+    return users.findOne({ email: { $regex: `^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } });
+  },
+
+  async createUser(username, passwordHash, targetCompany = '', hoursGoal = 10, email = '') {
     await initialize();
     if (isFallback) {
       const data = readJsonDb();
@@ -141,9 +152,12 @@ module.exports = {
         id: 'u_' + Math.random().toString(36).slice(2, 11),
         username,
         passwordHash,
+        email: email || '',
         targetCompany,
         hoursGoal: Number(hoursGoal),
         revisionPattern: DEFAULT_REVISION_PATTERN,
+        resetTokenHash: null,
+        resetTokenExpiresAt: null,
         createdAt: new Date().toISOString(),
       };
       data.users.push(newUser);
@@ -155,9 +169,12 @@ module.exports = {
       id: 'u_' + Math.random().toString(36).slice(2, 11),
       username,
       passwordHash,
+      email: email || '',
       targetCompany,
       hoursGoal,
       revisionPattern: DEFAULT_REVISION_PATTERN,
+      resetTokenHash: null,
+      resetTokenExpiresAt: null,
       createdAt: new Date().toISOString(),
     };
     await users.insertOne(newUser);
@@ -174,6 +191,7 @@ module.exports = {
       const user = data.users[idx];
       const targetCompany = updates.targetCompany !== undefined ? updates.targetCompany : user.targetCompany;
       const hoursGoal = updates.hoursGoal !== undefined ? Number(updates.hoursGoal) : user.hoursGoal;
+      const email = updates.email !== undefined ? updates.email : user.email;
       const revisionPattern = updates.revisionPattern !== undefined
         ? sanitizeRevisionPattern(updates.revisionPattern)
         : (user.revisionPattern || DEFAULT_REVISION_PATTERN);
@@ -182,6 +200,7 @@ module.exports = {
         ...user,
         targetCompany,
         hoursGoal,
+        email,
         revisionPattern,
       };
       writeJsonDb(data);
@@ -193,15 +212,57 @@ module.exports = {
 
     const targetCompany = updates.targetCompany !== undefined ? updates.targetCompany : user.targetCompany;
     const hoursGoal = updates.hoursGoal !== undefined ? Number(updates.hoursGoal) : user.hoursGoal;
+    const email = updates.email !== undefined ? updates.email : user.email;
     const revisionPattern = updates.revisionPattern !== undefined
       ? sanitizeRevisionPattern(updates.revisionPattern)
       : (user.revisionPattern || DEFAULT_REVISION_PATTERN);
 
     await users.updateOne(
       { id: userId },
-      { $set: { targetCompany, hoursGoal, revisionPattern } }
+      { $set: { targetCompany, hoursGoal, email, revisionPattern } }
     );
 
+    return users.findOne({ id: userId });
+  },
+
+  // ---- Password reset ----
+  async setResetToken(userId, tokenHash, expiresAt) {
+    await initialize();
+    if (isFallback) {
+      const data = readJsonDb();
+      const idx = data.users.findIndex(u => u.id === userId);
+      if (idx === -1) return null;
+      data.users[idx] = { ...data.users[idx], resetTokenHash: tokenHash, resetTokenExpiresAt: expiresAt };
+      writeJsonDb(data);
+      return data.users[idx];
+    }
+    await users.updateOne({ id: userId }, { $set: { resetTokenHash: tokenHash, resetTokenExpiresAt: expiresAt } });
+    return users.findOne({ id: userId });
+  },
+
+  async getUserByResetTokenHash(tokenHash) {
+    await initialize();
+    if (isFallback) {
+      const data = readJsonDb();
+      return data.users.find(u => u.resetTokenHash && u.resetTokenHash === tokenHash) || null;
+    }
+    return users.findOne({ resetTokenHash: tokenHash });
+  },
+
+  async resetPasswordByUserId(userId, passwordHash) {
+    await initialize();
+    if (isFallback) {
+      const data = readJsonDb();
+      const idx = data.users.findIndex(u => u.id === userId);
+      if (idx === -1) return null;
+      data.users[idx] = { ...data.users[idx], passwordHash, resetTokenHash: null, resetTokenExpiresAt: null };
+      writeJsonDb(data);
+      return data.users[idx];
+    }
+    await users.updateOne(
+      { id: userId },
+      { $set: { passwordHash, resetTokenHash: null, resetTokenExpiresAt: null } }
+    );
     return users.findOne({ id: userId });
   },
 

@@ -106,13 +106,13 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (username, password, targetCompany, hoursGoal) => {
+  const register = async (username, password, targetCompany, hoursGoal, email) => {
     setError(null);
     try {
       const res = await fetch(`${BACKEND_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, targetCompany, hoursGoal })
+        body: JSON.stringify({ username, password, targetCompany, hoursGoal, email })
       });
 
       const data = await res.json();
@@ -133,6 +133,7 @@ export function AuthProvider({ children }) {
         const mockUser = {
           id: 'u_offline',
           username: username,
+          email: email || '',
           targetCompany: targetCompany || 'FAANG',
           hoursGoal: hoursGoal || 10,
           isOfflineMode: true,
@@ -158,13 +159,14 @@ export function AuthProvider({ children }) {
     setUseLocalOnly(false);
   };
 
-  const updateProfile = async (targetCompany, hoursGoal, revisionPattern) => {
+  const updateProfile = async (targetCompany, hoursGoal, revisionPattern, email) => {
     if (useLocalOnly || user?.isOfflineMode) {
       const updatedUser = {
         ...user,
         targetCompany,
         hoursGoal: Number(hoursGoal),
-        ...(revisionPattern !== undefined ? { revisionPattern } : {})
+        ...(revisionPattern !== undefined ? { revisionPattern } : {}),
+        ...(email !== undefined ? { email } : {})
       };
       setUser(updatedUser);
       localStorage.setItem('sb_user', JSON.stringify(updatedUser));
@@ -175,7 +177,7 @@ export function AuthProvider({ children }) {
       const res = await fetch(`${BACKEND_URL}/api/auth/profile`, {
         method: 'PUT',
         headers: getHeaders(),
-        body: JSON.stringify({ targetCompany, hoursGoal, revisionPattern })
+        body: JSON.stringify({ targetCompany, hoursGoal, revisionPattern, email })
       });
 
       const data = await res.json();
@@ -196,6 +198,39 @@ export function AuthProvider({ children }) {
   // or resend targetCompany/hoursGoal just to change the revision pattern.
   const updateRevisionPattern = async (revisionPattern) => {
     return updateProfile(user?.targetCompany, user?.hoursGoal, revisionPattern);
+  };
+
+  // Convenience wrapper so existing users (created before email was
+  // required) can add or change their email from Settings.
+  const updateEmail = async (email) => {
+    return updateProfile(user?.targetCompany, user?.hoursGoal, undefined, email);
+  };
+
+  // Public (no-auth) forgot/reset password flow.
+  const forgotPassword = async (email) => {
+    const res = await fetch(`${BACKEND_URL}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to send reset email');
+    }
+    return data.message;
+  };
+
+  const resetPassword = async (token, password) => {
+    const res = await fetch(`${BACKEND_URL}/api/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to reset password');
+    }
+    return data.message;
   };
 
   const setGeminiKey = (key) => {
@@ -220,6 +255,9 @@ export function AuthProvider({ children }) {
       logout,
       updateProfile,
       updateRevisionPattern,
+      updateEmail,
+      forgotPassword,
+      resetPassword,
       setGeminiKey,
       getHeaders,
       backendUrl: BACKEND_URL

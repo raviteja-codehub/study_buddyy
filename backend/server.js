@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 const dotenv = require('dotenv');
 const db = require('./db');
 
@@ -10,6 +12,39 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'study-buddy-default-super-secret-key';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+// Email transporter for password-reset emails (free Gmail SMTP).
+// If EMAIL_USER/EMAIL_APP_PASSWORD aren't set (e.g. during local dev),
+// we skip sending and just log the reset link to the console instead,
+// so the feature is still testable without setting up Gmail.
+let mailTransporter = null;
+if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+  mailTransporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_APP_PASSWORD
+    }
+  });
+}
+
+async function sendResetEmail(toEmail, resetLink) {
+  if (!mailTransporter) {
+    console.log(`[Password Reset] Email not configured. Reset link for ${toEmail}:\n${resetLink}`);
+    return;
+  }
+  await mailTransporter.sendMail({
+    from: `"Study Buddy" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: 'Reset your Study Buddy password',
+    html: `
+      <p>Someone (hopefully you) requested a password reset for your Study Buddy account.</p>
+      <p><a href="${resetLink}">Click here to reset your password</a></p>
+      <p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+    `
+  });
+}
 
 // Middleware
 app.use(cors());
@@ -35,21 +70,28 @@ function authenticateToken(req, res, next) {
 
 // Auth Routes
 app.post('/api/auth/register', async (req, res) => {
-  const { username, password, targetCompany, hoursGoal } = req.body;
+  const { username, password, targetCompany, hoursGoal, email } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
+  }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'A valid email is required (used for password reset)' });
   }
 
   const existingUser = await db.getUserByUsername(username);
   if (existingUser) {
     return res.status(400).json({ error: 'Username is already taken' });
   }
+  const existingEmail = await db.getUserByEmail(email);
+  if (existingEmail) {
+    return res.status(400).json({ error: 'An account with that email already exists' });
+  }
 
   const salt = bcrypt.genSaltSync(10);
   const passwordHash = bcrypt.hashSync(password, salt);
 
-  const user = await db.createUser(username, passwordHash, targetCompany, hoursGoal);
+  const user = await db.createUser(username, passwordHash, targetCompany, hoursGoal, email);
   const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
 
   res.json({
@@ -57,6 +99,7 @@ app.post('/api/auth/register', async (req, res) => {
     user: {
       id: user.id,
       username: user.username,
+      email: user.email,
       targetCompany: user.targetCompany,
       hoursGoal: user.hoursGoal,
       revisionPattern: user.revisionPattern
@@ -83,6 +126,7 @@ app.post('/api/auth/login', async (req, res) => {
     user: {
       id: user.id,
       username: user.username,
+      email: user.email,
       targetCompany: user.targetCompany,
       hoursGoal: user.hoursGoal,
       revisionPattern: user.revisionPattern
@@ -99,6 +143,7 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
   res.json({
     id: user.id,
     username: user.username,
+    email: user.email,
     targetCompany: user.targetCompany,
     hoursGoal: user.hoursGoal,
     revisionPattern: user.revisionPattern
@@ -106,9 +151,20 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
 });
 
 app.put('/api/auth/profile', authenticateToken, async (req, res) => {
-  const { targetCompany, hoursGoal, revisionPattern } = req.body;
-  const updatedUser = await db.updateUserProfile(req.user.id, { targetCompany, hoursGoal, revisionPattern });
-  
+  const { targetCompany, hoursGoal, revisionPattern, email } = req.body;
+
+  if (email !== undefined && email !== '') {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+    const existingEmail = await db.getUserByEmail(email);
+    if (existingEmail && existingEmail.id !== req.user.id) {
+      return res.status(400).json({ error: 'An account with that email already exists' });
+    }
+  }
+
+  const updatedUser = await db.updateUserProfile(req.user.id, { targetCompany, hoursGoal, revisionPattern, email });
+
   if (!updatedUser) {
     return res.status(404).json({ error: 'User not found' });
   }
@@ -116,10 +172,68 @@ app.put('/api/auth/profile', authenticateToken, async (req, res) => {
   res.json({
     id: updatedUser.id,
     username: updatedUser.username,
+    email: updatedUser.email,
     targetCompany: updatedUser.targetCompany,
     hoursGoal: updatedUser.hoursGoal,
     revisionPattern: updatedUser.revisionPattern
   });
+});
+
+// Forgot / Reset Password
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+
+  // Always respond the same way whether or not the email exists,
+  // so we don't leak which emails have accounts.
+  const genericResponse = { message: 'If an account with that email exists, a reset link has been sent.' };
+
+  try {
+    const user = await db.getUserByEmail(email);
+    if (!user) {
+      return res.json(genericResponse);
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
+
+    await db.setResetToken(user.id, tokenHash, expiresAt);
+
+    const resetLink = `${FRONTEND_URL}/?reset_token=${rawToken}`;
+    await sendResetEmail(user.email, resetLink);
+
+    res.json(genericResponse);
+  } catch (err) {
+    console.error('Forgot-password error:', err);
+    // Still respond generically to avoid leaking info; error is logged server-side.
+    res.json(genericResponse);
+  }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) {
+    return res.status(400).json({ error: 'Reset token and new password are required' });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const user = await db.getUserByResetTokenHash(tokenHash);
+
+  if (!user || !user.resetTokenExpiresAt || user.resetTokenExpiresAt < Date.now()) {
+    return res.status(400).json({ error: 'This reset link is invalid or has expired. Please request a new one.' });
+  }
+
+  const salt = bcrypt.genSaltSync(10);
+  const passwordHash = bcrypt.hashSync(password, salt);
+  await db.resetPasswordByUserId(user.id, passwordHash);
+
+  res.json({ message: 'Password updated successfully. You can now sign in.' });
 });
 
 // Problems Routes
