@@ -3,7 +3,6 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 const dotenv = require('dotenv');
 const db = require('./db');
 
@@ -14,39 +13,32 @@ const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'study-buddy-default-super-secret-key';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-// Email transporter for password-reset emails (free Gmail SMTP).
-// If EMAIL_USER/EMAIL_APP_PASSWORD aren't set (e.g. during local dev),
-// we skip sending and just log the reset link to the console instead,
-// so the feature is still testable without setting up Gmail.
-let mailTransporter = null;
-if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
-  mailTransporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_APP_PASSWORD
-    },
-    family: 4 // Force IPv4, avoids issues on some systems
-  });
-}
-
 async function sendResetEmail(toEmail, resetLink) {
-  if (!mailTransporter) {
+  if (!process.env.RESEND_API_KEY) {
     console.log(`[Password Reset] Email not configured. Reset link for ${toEmail}:\n${resetLink}`);
     return;
   }
-  await mailTransporter.sendMail({
-    from: `"Study Buddy" <${process.env.EMAIL_USER}>`,
-    to: toEmail,
-    subject: 'Reset your Study Buddy password',
-    html: `
-      <p>Someone (hopefully you) requested a password reset for your Study Buddy account.</p>
-      <p><a href="${resetLink}">Click here to reset your password</a></p>
-      <p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
-    `
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from: 'Study Buddy <onboarding@resend.dev>',
+      to: toEmail,
+      subject: 'Reset your Study Buddy password',
+      html: `
+        <p>Someone (hopefully you) requested a password reset for your Study Buddy account.</p>
+        <p><a href="${resetLink}">Click here to reset your password</a></p>
+        <p>This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+      `
+    })
   });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Resend API error ${response.status}: ${errText}`);
+  }
 }
 
 // Middleware
