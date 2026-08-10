@@ -1,13 +1,23 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Key, Save, Download, Upload, LogOut, Info, ShieldCheck, Database } from 'lucide-react';
+import { Key, Save, Download, Upload, LogOut, Info, ShieldCheck, Database, RefreshCw, Plus, Minus } from 'lucide-react';
+
+const DEFAULT_REVISION_PATTERN = [1, 3, 7];
 
 export default function Settings({ problems, onImportData }) {
-  const { user, logout, updateProfile, geminiKey, setGeminiKey, useLocalOnly } = useAuth();
+  const { user, logout, updateProfile, updateRevisionPattern, geminiKey, setGeminiKey, useLocalOnly } = useAuth();
   
   const [targetCompany, setTargetCompany] = useState(user?.targetCompany || '');
   const [hoursGoal, setHoursGoal] = useState(user?.hoursGoal || 10);
   const [localKey, setLocalKey] = useState(geminiKey || '');
+
+  // Revision pattern draft state - number of stages (1-5) and each stage's
+  // day-offset. Only applies to problems logged AFTER saving; existing
+  // problems keep whatever pattern was active when they were logged.
+  const initialPattern = (user?.revisionPattern && user.revisionPattern.length) ? user.revisionPattern : DEFAULT_REVISION_PATTERN;
+  const [revisionDays, setRevisionDays] = useState(initialPattern);
+  const [patternMsg, setPatternMsg] = useState('');
+  const [patternError, setPatternError] = useState('');
   
   const [profileMsg, setProfileMsg] = useState('');
   const [keyMsg, setKeyMsg] = useState('');

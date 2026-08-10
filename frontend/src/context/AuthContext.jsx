@@ -91,7 +91,8 @@ export function AuthProvider({ children }) {
           username: username,
           targetCompany: 'Google',
           hoursGoal: 12,
-          isOfflineMode: true
+          isOfflineMode: true,
+          revisionPattern: [1, 3, 7]
         };
         setToken('offline-token');
         setUser(mockUser);
@@ -134,7 +135,8 @@ export function AuthProvider({ children }) {
           username: username,
           targetCompany: targetCompany || 'FAANG',
           hoursGoal: hoursGoal || 10,
-          isOfflineMode: true
+          isOfflineMode: true,
+          revisionPattern: [1, 3, 7]
         };
         setToken('offline-token');
         setUser(mockUser);
@@ -156,9 +158,14 @@ export function AuthProvider({ children }) {
     setUseLocalOnly(false);
   };
 
-  const updateProfile = async (targetCompany, hoursGoal) => {
+  const updateProfile = async (targetCompany, hoursGoal, revisionPattern) => {
     if (useLocalOnly || user?.isOfflineMode) {
-      const updatedUser = { ...user, targetCompany, hoursGoal: Number(hoursGoal) };
+      const updatedUser = {
+        ...user,
+        targetCompany,
+        hoursGoal: Number(hoursGoal),
+        ...(revisionPattern !== undefined ? { revisionPattern } : {})
+      };
       setUser(updatedUser);
       localStorage.setItem('sb_user', JSON.stringify(updatedUser));
       return updatedUser;
@@ -168,7 +175,7 @@ export function AuthProvider({ children }) {
       const res = await fetch(`${BACKEND_URL}/api/auth/profile`, {
         method: 'PUT',
         headers: getHeaders(),
-        body: JSON.stringify({ targetCompany, hoursGoal })
+        body: JSON.stringify({ targetCompany, hoursGoal, revisionPattern })
       });
 
       const data = await res.json();
@@ -183,6 +190,12 @@ export function AuthProvider({ children }) {
       console.error(err);
       throw err;
     }
+  };
+
+  // Convenience wrapper for the Settings page, so it doesn't need to know
+  // or resend targetCompany/hoursGoal just to change the revision pattern.
+  const updateRevisionPattern = async (revisionPattern) => {
+    return updateProfile(user?.targetCompany, user?.hoursGoal, revisionPattern);
   };
 
   const setGeminiKey = (key) => {
@@ -206,6 +219,7 @@ export function AuthProvider({ children }) {
       register,
       logout,
       updateProfile,
+      updateRevisionPattern,
       setGeminiKey,
       getHeaders,
       backendUrl: BACKEND_URL

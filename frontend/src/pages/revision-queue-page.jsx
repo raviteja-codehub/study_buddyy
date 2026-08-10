@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Play, Pause, RotateCcw, TriangleAlert as AlertTriangle, ExternalLink, ArrowLeft, Eye, CircleCheck as CheckCircle, Check, Clock, Trophy } from 'lucide-react';
 import Badge from '../components/ui/Badge';
+import { useAuth } from '../context/AuthContext';
 
 const COLORS = {
   easy: '#4ade80',
@@ -17,9 +18,19 @@ const COLORS = {
 const CONF_LABEL = { 1: 'Blanked', 2: 'Shaky', 3: 'Okay', 4: 'Solid', 5: 'Nailed it' };
 const CONF_COLOR = { 1: COLORS.danger, 2: COLORS.danger, 3: COLORS.ember, 4: COLORS.signal, 5: COLORS.signal };
 
-// The 1-3-7 rule: every problem gets exactly 3 revisions, on Day 1, Day 3,
-// and Day 7 after it was first logged.
-const STAGE_LABELS = ['Day 1', 'Day 3', 'Day 7'];
+// Revision pattern is per-problem (snapshotted from the user's Settings at
+// log time), so stage labels are derived per-problem rather than a single
+// global constant. Falls back to the classic 1-3-7 rule if a problem has no
+// pattern recorded (e.g. older data from before this feature existed).
+const DEFAULT_REVISION_PATTERN = [1, 3, 7];
+
+function getPattern(problem) {
+  return (problem?.revisionPattern && problem.revisionPattern.length) ? problem.revisionPattern : DEFAULT_REVISION_PATTERN;
+}
+
+function getStageLabels(problem) {
+  return getPattern(problem).map(d => `Day ${d}`);
+}
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -36,12 +47,12 @@ function DifficultyBadge({ level }) {
   return <Badge variant={variant} type="dim">{level}</Badge>;
 }
 
-// Small visual tracker showing progress through the 1-3-7 rule:
-// Day 1 -> Day 3 -> Day 7, each either done / due-now / upcoming.
-function StageTracker({ revisionStage = 0, isOverdueStage, compact }) {
+// Small visual tracker showing progress through the revision pattern:
+// Day X1 -> Day X2 -> ... each either done / due-now / upcoming.
+function StageTracker({ revisionStage = 0, isOverdueStage, compact, labels = ['Day 1', 'Day 3', 'Day 7'] }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: compact ? 4 : 6 }}>
-      {STAGE_LABELS.map((label, i) => {
+      {labels.map((label, i) => {
         const done = revisionStage > i;
         const current = revisionStage === i;
         let bg = 'var(--surface-hover)';
@@ -78,7 +89,7 @@ function StageTracker({ revisionStage = 0, isOverdueStage, compact }) {
               {done ? <Check size={compact ? 10 : 11} /> : current ? <Clock size={compact ? 10 : 11} /> : null}
               {label}
             </div>
-            {i < STAGE_LABELS.length - 1 && (
+            {i < labels.length - 1 && (
               <div style={{ width: compact ? 8 : 12, height: 1, background: 'var(--border-strong)' }} />
             )}
           </React.Fragment>
@@ -89,7 +100,14 @@ function StageTracker({ revisionStage = 0, isOverdueStage, compact }) {
 }
 
 export default function RevisionQueue({ problems, onRate, activeProblemId, onBack }) {
+  const { user } = useAuth();
   const today = todayStr();
+
+  // Text describing the user's current default pattern (for the header /
+  // empty-state copy). Individual problems below still render their own
+  // snapshotted pattern regardless of what this currently says.
+  const currentPattern = (user?.revisionPattern && user.revisionPattern.length) ? user.revisionPattern : DEFAULT_REVISION_PATTERN;
+  const patternText = currentPattern.map(d => `Day ${d}`).join(', ');
 
   // Local state for which problem is being actively reviewed (via flip-card).
   // Initialized from the parent's activeProblemId (used when "Review" is
@@ -110,7 +128,7 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
 
     problems.forEach(p => {
       if (p.mastered || !p.nextReview) {
-        if (p.revisionStage >= 3 || p.mastered) mastered.push(p);
+        if (p.revisionStage >= getPattern(p).length || p.mastered) mastered.push(p);
         return;
       }
       if (p.nextReview < today) overdue.push(p);
@@ -192,7 +210,8 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
   // ==================== FLIP-CARD REVIEW VIEW ====================
   if (activeProblem) {
     const stageIdx = activeProblem.revisionStage || 0;
-    const stageLabel = STAGE_LABELS[stageIdx] || 'Final';
+    const activeStageLabels = getStageLabels(activeProblem);
+    const stageLabel = activeStageLabels[stageIdx] || 'Final';
     return (
       <div className="sb-fade-in" style={{ maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -208,7 +227,7 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
 
         {/* Stage progress for this specific problem */}
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <StageTracker revisionStage={stageIdx} isOverdueStage={activeProblem.nextReview < today} />
+          <StageTracker revisionStage={stageIdx} isOverdueStage={activeProblem.nextReview < today} labels={activeStageLabels} />
         </div>
 
         {/* Timer Capsule widget */}
@@ -416,8 +435,8 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
         </div>
         <h3 className="mono" style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>No Problems Logged Yet</h3>
         <p style={{ fontSize: 14, color: 'var(--text-muted)', maxWidth: 420, margin: '0 auto', lineHeight: 1.6 }}>
-          Log your first problem and Study Buddy will automatically schedule its 1-3-7 rule
-          revisions: Day 1, Day 3, and Day 7 after you solve it.
+          Log your first problem and Study Buddy will automatically schedule its
+          revisions: {patternText} after you solve it.
         </p>
       </div>
     );
@@ -432,7 +451,7 @@ export default function RevisionQueue({ problems, onRate, activeProblemId, onBac
           Revision Queue
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-          Every problem follows the <strong style={{ color: 'var(--frost)' }}>1-3-7 rule</strong>: revised on Day 1, Day 3, and Day 7 after you first log it.
+          Every problem follows your <strong style={{ color: 'var(--frost)' }}>revision pattern</strong>: revised on {patternText} after you first log it.
         </p>
       </div>
 
@@ -552,7 +571,8 @@ function QueueColumn({ title, icon, color, items, today, emptyText, onStart, upc
 
 function RevisionCard({ problem, today, color, onStart, upcoming }) {
   const stageIdx = problem.revisionStage || 0;
-  const stageLabel = STAGE_LABELS[stageIdx] || 'Final';
+  const cardStageLabels = getStageLabels(problem);
+  const stageLabel = cardStageLabels[stageIdx] || 'Final';
   const daysAway = problem.nextReview ? daysBetween(today, problem.nextReview) : null;
 
   return (
@@ -585,7 +605,7 @@ function RevisionCard({ problem, today, color, onStart, upcoming }) {
         </div>
       </div>
 
-      <StageTracker revisionStage={stageIdx} isOverdueStage={!upcoming && problem.nextReview < today} compact />
+      <StageTracker revisionStage={stageIdx} isOverdueStage={!upcoming && problem.nextReview < today} compact labels={cardStageLabels} />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'var(--text-faint)' }}>
         <span>

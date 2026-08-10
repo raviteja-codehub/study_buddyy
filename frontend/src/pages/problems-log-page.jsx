@@ -157,6 +157,15 @@ export default function ProblemList({ problems, onEdit, onDelete, onAdd, onDirec
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span style={{ fontWeight: 600, color: '#fff' }}>{p.title}</span>
+                          {p.previouslySolved && (
+                            <span
+                              className="mono"
+                              title="Already known — not in revision queue"
+                              style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--signal)', background: 'var(--signal-dim)', padding: '2px 6px', borderRadius: 4, textTransform: 'uppercase', letterSpacing: 0.3 }}
+                            >
+                              Known
+                            </span>
+                          )}
                           {p.link && (
                             <a 
                               href={p.link} 

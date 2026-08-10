@@ -38,6 +38,7 @@ export default function ProblemForm({ initial, onSave, onCancel }) {
   const [summary, setSummary] = useState(initial?.summary || null);
   const [confidence, setConfidence] = useState(5);
   const [timeSpent, setTimeSpent] = useState(initial?.timeSpent || '');
+  const [previouslySolved, setPreviouslySolved] = useState(initial?.previouslySolved || false);
   
   const [genLoading, setGenLoading] = useState(false);
   const [genError, setGenError] = useState('');
@@ -90,7 +91,8 @@ export default function ProblemForm({ initial, onSave, onCancel }) {
       mistakes,
       summary,
       confidence,
-      timeSpent: Number(timeSpent) || 0
+      timeSpent: Number(timeSpent) || 0,
+      previouslySolved
     });
   };
 
@@ -116,6 +118,36 @@ export default function ProblemForm({ initial, onSave, onCancel }) {
             placeholder="e.g. Longest Substring Without Repeating Characters" 
           />
         </Field>
+
+        {/* Already Solved / Not currently learning */}
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '10px 14px',
+            borderRadius: 'var(--radius-sm)',
+            border: `1px solid ${previouslySolved ? 'rgba(74, 222, 128, 0.35)' : 'var(--border)'}`,
+            background: previouslySolved ? 'rgba(74, 222, 128, 0.08)' : 'transparent',
+            cursor: 'pointer',
+            transition: 'all 0.2s var(--ease-out)'
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={previouslySolved}
+            onChange={e => setPreviouslySolved(e.target.checked)}
+            style={{ width: 16, height: 16, accentColor: COLORS.signal, cursor: 'pointer' }}
+          />
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: previouslySolved ? COLORS.signal : 'var(--text)' }}>
+              Already solved before (not currently learning)
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 1 }}>
+              Skips this from the revision queue — just logs it as known.
+            </div>
+          </div>
+        </label>
 
         {/* Link */}
         <Field label="Problem Link (Optional)">

@@ -58,7 +58,8 @@ app.post('/api/auth/register', async (req, res) => {
       id: user.id,
       username: user.username,
       targetCompany: user.targetCompany,
-      hoursGoal: user.hoursGoal
+      hoursGoal: user.hoursGoal,
+      revisionPattern: user.revisionPattern
     }
   });
 });
@@ -83,7 +84,8 @@ app.post('/api/auth/login', async (req, res) => {
       id: user.id,
       username: user.username,
       targetCompany: user.targetCompany,
-      hoursGoal: user.hoursGoal
+      hoursGoal: user.hoursGoal,
+      revisionPattern: user.revisionPattern
     }
   });
 });
@@ -98,13 +100,14 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
     id: user.id,
     username: user.username,
     targetCompany: user.targetCompany,
-    hoursGoal: user.hoursGoal
+    hoursGoal: user.hoursGoal,
+    revisionPattern: user.revisionPattern
   });
 });
 
 app.put('/api/auth/profile', authenticateToken, async (req, res) => {
-  const { targetCompany, hoursGoal } = req.body;
-  const updatedUser = await db.updateUserProfile(req.user.id, { targetCompany, hoursGoal });
+  const { targetCompany, hoursGoal, revisionPattern } = req.body;
+  const updatedUser = await db.updateUserProfile(req.user.id, { targetCompany, hoursGoal, revisionPattern });
   
   if (!updatedUser) {
     return res.status(404).json({ error: 'User not found' });
@@ -114,7 +117,8 @@ app.put('/api/auth/profile', authenticateToken, async (req, res) => {
     id: updatedUser.id,
     username: updatedUser.username,
     targetCompany: updatedUser.targetCompany,
-    hoursGoal: updatedUser.hoursGoal
+    hoursGoal: updatedUser.hoursGoal,
+    revisionPattern: updatedUser.revisionPattern
   });
 });
 
@@ -125,7 +129,14 @@ app.get('/api/problems', authenticateToken, async (req, res) => {
 });
 
 app.post('/api/problems', authenticateToken, async (req, res) => {
-  const problem = await db.createProblem(req.user.id, req.body);
+  // Snapshot the user's current revision pattern onto the problem, unless
+  // the request already specifies one explicitly (e.g. a backup import).
+  let payload = req.body;
+  if (!payload.revisionPattern) {
+    const user = await db.getUserById(req.user.id);
+    payload = { ...payload, revisionPattern: user?.revisionPattern };
+  }
+  const problem = await db.createProblem(req.user.id, payload);
   res.status(201).json(problem);
 });
 

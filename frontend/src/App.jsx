@@ -8,6 +8,7 @@ import ProblemForm from './pages/problem-form-page';
 import Settings from './pages/settings-page';
 import FocusTimer from './pages/focus-timer-page';
 import Performance from './pages/performance-page';
+import { FocusTimerProvider } from './context/FocusTimerContext';
 import { LayoutDashboard, ListChecks, ClipboardList, Settings as SettingsIcon, Brain, Plus, LogOut, Loader as Loader2, Target, Menu, X, TrendingUp, Timer } from 'lucide-react';
 
 const STORAGE_KEY = 'studybuddy-v2-local';
@@ -22,18 +23,15 @@ function addDays(dateStr, days) {
   return d.toISOString().slice(0, 10);
 }
 
-// ---- 1-3-7 Spaced Revision Rule ----
-// Every problem must be revised exactly 3 times: 1 day, 3 days, and 7 days
-// after the day it was originally logged (measured from the ORIGINAL
-// createdAt date, not from the previous revision - this is the classic
-// definition of the 1-3-7 rule).
-const REVISION_STAGES = [1, 3, 7];
+// ---- Spaced Revision Rule ----
+// Default pattern (classic 1-3-7 rule). Users can customize via Settings;
+// each problem snapshots the pattern active when it was logged.
+const DEFAULT_REVISION_PATTERN = [1, 3, 7];
 
-// revisionStage: 0 = nothing revised yet (Day-1 due next), 1 = Day-1 done
-// (Day-3 due next), 2 = Day-3 done (Day-7 due next), 3 = Day-7 done -> Mastered
-function computeNextReviewDate(createdAt, revisionStage) {
-  if (revisionStage >= REVISION_STAGES.length) return null;
-  return addDays(createdAt, REVISION_STAGES[revisionStage]);
+// revisionStage: 0 = nothing revised yet, N = fully mastered (N = pattern.length)
+function computeNextReviewDate(createdAt, revisionStage, pattern = DEFAULT_REVISION_PATTERN) {
+  if (revisionStage >= pattern.length) return null;
+  return addDays(createdAt, pattern[revisionStage]);
 }
 
 // Compute streak count from history logs
@@ -146,7 +144,10 @@ function AppContent() {
     try {
       if (useLocalOnly || user?.isOfflineMode) {
         const now = todayStr();
-        const revisionStage = 0;
+        const previouslySolved = !!data.previouslySolved;
+        const revisionPattern = (user?.revisionPattern && user.revisionPattern.length) ? user.revisionPattern : DEFAULT_REVISION_PATTERN;
+        // Already-known problems skip the revision queue entirely (no Day 1/3/7).
+        const revisionStage = previouslySolved ? revisionPattern.length : 0;
         const newProb = {
           id: 'p_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6),
           title: data.title,
@@ -159,8 +160,10 @@ function AppContent() {
           summary: data.summary || null,
           createdAt: now,
           revisionStage,
-          mastered: false,
-          nextReview: computeNextReviewDate(now, revisionStage),
+          revisionPattern,
+          previouslySolved,
+          mastered: previouslySolved,
+          nextReview: computeNextReviewDate(now, revisionStage, revisionPattern),
           reviewHistory: data.confidence ? [{ date: now, confidence: data.confidence, timeSpent: Number(data.timeSpent) || 0, stage: 0 }] : [],
           timeSpent: Number(data.timeSpent) || 0
         };
@@ -192,18 +195,29 @@ function AppContent() {
   const handleSaveEdit = async (data) => {
     try {
       if (useLocalOnly || user?.isOfflineMode) {
-        const updated = problems.map(p => p.id === editingId ? {
-          ...p,
-          title: data.title,
-          link: data.link || '',
-          description: data.description || '',
-          pattern: data.pattern,
-          difficulty: data.difficulty,
-          notes: data.notes || '',
-          mistakes: data.mistakes || '',
-          summary: data.summary,
-          timeSpent: Number(data.timeSpent) || p.timeSpent || 0
-        } : p);
+        const updated = problems.map(p => {
+          if (p.id !== editingId) return p;
+          const psChanged = data.previouslySolved !== undefined && !!data.previouslySolved !== !!p.previouslySolved;
+          const previouslySolved = data.previouslySolved !== undefined ? !!data.previouslySolved : p.previouslySolved;
+          const pattern = (p.revisionPattern && p.revisionPattern.length) ? p.revisionPattern : DEFAULT_REVISION_PATTERN;
+          const revisionStage = psChanged ? (previouslySolved ? pattern.length : 0) : p.revisionStage;
+          return {
+            ...p,
+            title: data.title,
+            link: data.link || '',
+            description: data.description || '',
+            pattern: data.pattern,
+            difficulty: data.difficulty,
+            notes: data.notes || '',
+            mistakes: data.mistakes || '',
+            summary: data.summary,
+            timeSpent: Number(data.timeSpent) || p.timeSpent || 0,
+            previouslySolved,
+            revisionStage,
+            mastered: psChanged ? previouslySolved : p.mastered,
+            nextReview: psChanged ? computeNextReviewDate(p.createdAt, revisionStage, pattern) : p.nextReview,
+          };
+        });
         setProblems(updated);
         syncLocalCache(updated);
       } else {
@@ -250,12 +264,13 @@ function AppContent() {
         const updated = problems.map(p => {
           if (p.id !== id) return p;
           const prevStage = p.revisionStage || 0;
-          const nextStage = Math.min(REVISION_STAGES.length, prevStage + 1);
+          const pattern = (p.revisionPattern && p.revisionPattern.length) ? p.revisionPattern : DEFAULT_REVISION_PATTERN;
+          const nextStage = Math.min(pattern.length, prevStage + 1);
           return {
             ...p,
             revisionStage: nextStage,
-            mastered: nextStage >= REVISION_STAGES.length,
-            nextReview: computeNextReviewDate(p.createdAt, nextStage),
+            mastered: nextStage >= pattern.length,
+            nextReview: computeNextReviewDate(p.createdAt, nextStage, pattern),
             reviewHistory: [...(p.reviewHistory || []), { date: today, confidence, timeSpent: Number(timeSpent) || 0, stage: prevStage }]
           };
         });
@@ -669,5 +684,9 @@ export default function App() {
     );
   }
 
-  return user ? <AppContent /> : <LoginPage />;
+  return user ? (
+    <FocusTimerProvider>
+      <AppContent />
+    </FocusTimerProvider>
+  ) : <LoginPage />;
 }
