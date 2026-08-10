@@ -169,6 +169,76 @@ app.post('/api/problems/:id/review', authenticateToken, async (req, res) => {
   res.json(updated);
 });
 
+// LeetCode search proxy (LeetCode's GraphQL API blocks direct browser calls
+// due to CORS, so this route calls it server-side and forwards the results).
+app.get('/api/leetcode/search', authenticateToken, async (req, res) => {
+  const query = (req.query.q || '').trim();
+  if (!query) {
+    return res.status(400).json({ error: 'Query parameter "q" is required' });
+  }
+
+  const graphqlQuery = {
+    query: `
+      query problemsetQuestionList($categorySlug: String, $limit: Int, $skip: Int, $filters: QuestionListFilterInput) {
+        problemsetQuestionList: questionList(
+          categorySlug: $categorySlug
+          limit: $limit
+          skip: $skip
+          filters: $filters
+        ) {
+          total: totalNum
+          questions: data {
+            title
+            titleSlug
+            difficulty
+            topicTags {
+              name
+              slug
+            }
+          }
+        }
+      }
+    `,
+    variables: {
+      categorySlug: '',
+      skip: 0,
+      limit: 10,
+      filters: { searchKeywords: query }
+    }
+  };
+
+  try {
+    const response = await fetch('https://leetcode.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Referer': 'https://leetcode.com'
+      },
+      body: JSON.stringify(graphqlQuery)
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`LeetCode API returned status ${response.status}: ${errText}`);
+    }
+
+    const data = await response.json();
+    const questions = data?.data?.problemsetQuestionList?.questions || [];
+
+    const results = questions.map(q => ({
+      title: q.title,
+      link: `https://leetcode.com/problems/${q.titleSlug}/`,
+      difficulty: q.difficulty,
+      tags: (q.topicTags || []).map(t => t.name)
+    }));
+
+    res.json({ results });
+  } catch (err) {
+    console.error('LeetCode search error:', err);
+    res.status(502).json({ error: 'Could not reach LeetCode. Try again later.' });
+  }
+});
+
 // Gemini AI Integration for DSA summarizing
 app.post('/api/ai/summarize', authenticateToken, async (req, res) => {
   const { title, description, notes } = req.body;

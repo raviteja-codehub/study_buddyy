@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Sparkles, Loader as Loader2, TriangleAlert as AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Sparkles, Loader as Loader2, TriangleAlert as AlertTriangle, Search, X, ExternalLink } from 'lucide-react';
 
 const PATTERNS = [
   'Two Pointers', 'Sliding Window', 'Binary Search', 'DFS', 'BFS',
@@ -43,7 +43,54 @@ export default function ProblemForm({ initial, onSave, onCancel }) {
   const [genLoading, setGenLoading] = useState(false);
   const [genError, setGenError] = useState('');
 
+  const [lcLoading, setLcLoading] = useState(false);
+  const [lcError, setLcError] = useState('');
+  const [lcResults, setLcResults] = useState(null);
+
   const isEdit = !!initial;
+
+  const searchLeetCode = async () => {
+    if (!title.trim()) {
+      setLcError('Type a problem title first.');
+      return;
+    }
+    setLcLoading(true);
+    setLcError('');
+    setLcResults(null);
+    try {
+      const res = await fetch(`${backendUrl}/api/leetcode/search?q=${encodeURIComponent(title.trim())}`, {
+        headers: getHeaders()
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to search LeetCode');
+      }
+      if (!data.results || data.results.length === 0) {
+        setLcError('No matching LeetCode problems found.');
+      } else {
+        setLcResults(data.results);
+      }
+    } catch (e) {
+      console.error(e);
+      setLcError(e.message || 'Could not reach LeetCode. Check backend connection.');
+    } finally {
+      setLcLoading(false);
+    }
+  };
+
+  const applyLeetCodeResult = (result) => {
+    setLink(result.link);
+    if (result.difficulty && DIFFICULTIES.includes(result.difficulty)) {
+      setDifficulty(result.difficulty);
+    }
+    if (result.tags && result.tags.length) {
+      const matched = PATTERNS.find(p =>
+        result.tags.some(t => t.toLowerCase() === p.toLowerCase())
+      );
+      if (matched) setPattern(matched);
+    }
+    setLcResults(null);
+  };
 
   const generateSummary = async () => {
     if (!description.trim() && !notes.trim()) {
@@ -151,11 +198,107 @@ export default function ProblemForm({ initial, onSave, onCancel }) {
 
         {/* Link */}
         <Field label="Problem Link (Optional)">
-          <input 
-            value={link} 
-            onChange={e => setLink(e.target.value)} 
-            placeholder="e.g. https://leetcode.com/problems/longest-substring-without-repeating-characters" 
-          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input 
+              value={link} 
+              onChange={e => setLink(e.target.value)} 
+              placeholder="e.g. https://leetcode.com/problems/longest-substring-without-repeating-characters" 
+              style={{ flex: 1 }}
+            />
+            <button
+              type="button"
+              onClick={searchLeetCode}
+              disabled={lcLoading}
+              className="btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', whiteSpace: 'nowrap' }}
+              title="Search LeetCode using the title above"
+            >
+              {lcLoading ? <Loader2 size={14} className="sb-spin" /> : <Search size={14} />}
+              {lcLoading ? 'Searching...' : 'Fetch from LeetCode'}
+            </button>
+          </div>
+
+          {lcError && (
+            <span style={{ fontSize: 12.5, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 6 }}>
+              <AlertTriangle size={13} /> {lcError}
+            </span>
+          )}
+
+          {lcResults && (
+            <div className="sb-fade-in" style={{
+              marginTop: 8,
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '8px 12px',
+                background: 'var(--surface-hover)',
+                borderBottom: '1px solid var(--border)'
+              }}>
+                <span className="mono" style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                  Matches on LeetCode
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setLcResults(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                {lcResults.map((r, i) => (
+                  <button
+                    type="button"
+                    key={i}
+                    onClick={() => applyLeetCodeResult(r)}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      background: 'transparent',
+                      border: 'none',
+                      borderBottom: i === lcResults.length - 1 ? 'none' : '1px solid var(--border)',
+                      padding: '10px 12px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                      color: 'var(--text)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {r.title}
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {r.link}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      {r.difficulty && (
+                        <span className="mono" style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          padding: '2px 7px',
+                          borderRadius: 999,
+                          color: r.difficulty === 'Easy' ? COLORS.easy : r.difficulty === 'Medium' ? COLORS.medium : COLORS.hard,
+                          background: r.difficulty === 'Easy' ? 'rgba(74, 222, 128, 0.12)' : r.difficulty === 'Medium' ? 'rgba(251, 146, 60, 0.12)' : 'rgba(248, 113, 113, 0.12)'
+                        }}>
+                          {r.difficulty}
+                        </span>
+                      )}
+                      <ExternalLink size={13} color="var(--text-faint)" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </Field>
 
         {/* Topic & Difficulty row */}

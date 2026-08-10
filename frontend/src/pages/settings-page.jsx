@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Key, Save, Download, Upload, LogOut, Info, ShieldCheck, Database, RefreshCw, Plus, Minus } from 'lucide-react';
+import { Key, Save, Download, Upload, LogOut, Info, ShieldCheck, Database, RefreshCw, Plus, Minus, Repeat } from 'lucide-react';
 
 const DEFAULT_REVISION_PATTERN = [1, 3, 7];
 
@@ -19,6 +19,66 @@ export default function Settings({ problems, onImportData }) {
   const [patternMsg, setPatternMsg] = useState('');
   const [patternError, setPatternError] = useState('');
   
+  const addStage = () => {
+    setPatternError('');
+    setRevisionDays(prev => {
+      if (prev.length >= 5) return prev;
+      const last = prev[prev.length - 1] || 0;
+      return [...prev, last + 4]; // sensible gap after the last stage
+    });
+  };
+
+  const removeStage = (index) => {
+    setPatternError('');
+    setRevisionDays(prev => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+  };
+
+  const updateStageDay = (index, value) => {
+    setPatternError('');
+    setRevisionDays(prev => {
+      const next = [...prev];
+      next[index] = value === '' ? '' : Number(value);
+      return next;
+    });
+  };
+
+  // Mirrors backend sanitizeRevisionPattern() so the user gets instant
+  // feedback before saving. The server re-validates regardless.
+  const sanitizePatternClient = (pattern) => {
+    if (!Array.isArray(pattern) || pattern.length === 0) return DEFAULT_REVISION_PATTERN;
+    const cleaned = pattern
+      .map(n => Math.round(Number(n)))
+      .filter(n => Number.isFinite(n) && n >= 1 && n <= 365)
+      .slice(0, 5);
+    if (cleaned.length === 0) return DEFAULT_REVISION_PATTERN;
+    for (let i = 1; i < cleaned.length; i++) {
+      if (cleaned[i] <= cleaned[i - 1]) cleaned[i] = cleaned[i - 1] + 1;
+    }
+    return cleaned;
+  };
+
+  const handleSavePattern = async (e) => {
+    e.preventDefault();
+    setPatternMsg('');
+    setPatternError('');
+
+    const hasInvalid = revisionDays.some(d => d === '' || Number(d) < 1 || Number(d) > 365);
+    if (hasInvalid) {
+      setPatternError('Every stage needs a day value between 1 and 365.');
+      return;
+    }
+
+    const cleaned = sanitizePatternClient(revisionDays);
+    try {
+      await updateRevisionPattern(cleaned);
+      setRevisionDays(cleaned);
+      setPatternMsg('Revision pattern saved. New problems will follow this schedule.');
+      setTimeout(() => setPatternMsg(''), 3500);
+    } catch (err) {
+      setPatternError('Failed to update revision pattern.');
+    }
+  };
+
   const [profileMsg, setProfileMsg] = useState('');
   const [keyMsg, setKeyMsg] = useState('');
   const [importError, setImportError] = useState('');
@@ -157,6 +217,107 @@ export default function Settings({ problems, onImportData }) {
               <Save size={13} /> Save Profile Settings
             </button>
             {profileMsg && <span style={{ fontSize: 12, color: 'var(--signal)' }}>{profileMsg}</span>}
+          </div>
+        </form>
+      </div>
+
+      {/* Revision Pattern */}
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <h4 className="mono" style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', paddingBottom: 10, letterSpacing: '0.02em' }}>
+          Revision Pattern
+        </h4>
+        <div style={{
+          background: 'rgba(56, 189, 248, 0.03)',
+          border: '1px solid rgba(56, 189, 248, 0.1)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '12px 14px',
+          display: 'flex',
+          gap: 8,
+          alignItems: 'flex-start'
+        }}>
+          <Info size={15} color="var(--frost)" style={{ marginTop: 2, flexShrink: 0 }} />
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            Controls how many days after solving a problem it comes back up for revision (classic default is the 1-3-7 rule). This only affects problems you log <strong style={{ color: 'var(--text)' }}>after</strong> saving — problems already in your queue keep the schedule they were logged with.
+          </p>
+        </div>
+
+        <form onSubmit={handleSavePattern} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {revisionDays.map((day, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div className="mono" style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: '50%',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  flexShrink: 0
+                }}>
+                  {i + 1}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <input
+                    type="number"
+                    min="1"
+                    max="365"
+                    value={day}
+                    onChange={e => updateStageDay(i, e.target.value)}
+                    placeholder="Days after solving"
+                  />
+                </div>
+                <span style={{ fontSize: 12, color: 'var(--text-faint)', minWidth: 42 }}>day{Number(day) === 1 ? '' : 's'}</span>
+                <button
+                  type="button"
+                  onClick={() => removeStage(i)}
+                  disabled={revisionDays.length <= 1}
+                  className="btn-secondary"
+                  style={{
+                    width: 30,
+                    height: 30,
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: revisionDays.length <= 1 ? 0.35 : 1,
+                    cursor: revisionDays.length <= 1 ? 'not-allowed' : 'pointer'
+                  }}
+                  title="Remove stage"
+                >
+                  <Minus size={13} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={addStage}
+            disabled={revisionDays.length >= 5}
+            className="btn-secondary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '8px 14px',
+              opacity: revisionDays.length >= 5 ? 0.4 : 1,
+              cursor: revisionDays.length >= 5 ? 'not-allowed' : 'pointer'
+            }}
+          >
+            <Plus size={13} /> Add Revision Stage {revisionDays.length >= 5 ? '(max 5)' : ''}
+          </button>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, flexWrap: 'wrap', gap: 8 }}>
+            <button type="submit" className="btn-secondary" style={{ display: 'flex', gap: 6, padding: '8px 14px' }}>
+              <Repeat size={13} /> Save Pattern
+            </button>
+            {patternMsg && <span style={{ fontSize: 12, color: 'var(--signal)' }}>{patternMsg}</span>}
+            {patternError && <span style={{ fontSize: 12, color: 'var(--danger)' }}>{patternError}</span>}
           </div>
         </form>
       </div>
