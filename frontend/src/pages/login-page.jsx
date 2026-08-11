@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Brain, Sparkles, Building, Clock, Lock, User, Mail, TriangleAlert as AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Brain, Sparkles, Building, Clock, Lock, User, Mail, TriangleAlert as AlertTriangle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 
 const MOTIVATIONS = [
   "Consistency beats intensity. One problem a day keeps the rejection away.",
@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [motivation, setMotivation] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Forgot-password mini-flow, shown instead of the sign-in/register form.
   const [showForgot, setShowForgot] = useState(false);
@@ -40,10 +41,7 @@ export default function LoginPage() {
       setError('Please fill in all credentials.');
       return;
     }
-    if (!isLogin && !email.trim()) {
-      setError('Email is required (used for password reset).');
-      return;
-    }
+
 
     setError('');
     setLoading(true);
@@ -338,13 +336,34 @@ export default function LoginPage() {
             <div style={{ position: 'relative' }}>
               <Lock size={14} color="var(--text-faint)" style={{ position: 'absolute', left: 12, top: 13 }} />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
-                style={{ paddingLeft: 34 }}
+                style={{ paddingLeft: 34, paddingRight: 38 }}
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: 12,
+                  top: 13,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: 'var(--text-faint)',
+                  transition: 'color 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}
+              >
+                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
             </div>
           </div>
 
@@ -353,7 +372,7 @@ export default function LoginPage() {
             <div className="sb-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, letterSpacing: '0.02em' }}>
-                  Email
+                  Email (Optional)
                 </label>
                 <div style={{ position: 'relative' }}>
                   <Mail size={14} color="var(--text-faint)" style={{ position: 'absolute', left: 12, top: 13 }} />
@@ -363,45 +382,11 @@ export default function LoginPage() {
                     onChange={e => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     style={{ paddingLeft: 34 }}
-                    required
                   />
                 </div>
                 <span style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4, display: 'block' }}>
                   Used only for password reset.
                 </span>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, letterSpacing: '0.02em' }}>
-                  Target Company
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Building size={14} color="var(--text-faint)" style={{ position: 'absolute', left: 12, top: 13 }} />
-                  <input
-                    type="text"
-                    value={targetCompany}
-                    onChange={e => setTargetCompany(e.target.value)}
-                    placeholder="e.g. Google, Meta"
-                    style={{ paddingLeft: 34 }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, letterSpacing: '0.02em' }}>
-                  Weekly Prep Goal (Hours)
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Clock size={14} color="var(--text-faint)" style={{ position: 'absolute', left: 12, top: 13 }} />
-                  <input
-                    type="number"
-                    min="1"
-                    max="80"
-                    value={hoursGoal}
-                    onChange={e => setHoursGoal(e.target.value)}
-                    style={{ paddingLeft: 34 }}
-                  />
-                </div>
               </div>
             </div>
           )}

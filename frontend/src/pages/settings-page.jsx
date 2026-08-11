@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Key, Save, Download, Upload, LogOut, Info, ShieldCheck, Database, RefreshCw, Plus, Minus, Repeat, Mail } from 'lucide-react';
+import { Key, Save, Download, Upload, LogOut, Info, ShieldCheck, Database, RefreshCw, Plus, Minus, Repeat, Mail, Eye, EyeOff, Pencil } from 'lucide-react';
 
 const DEFAULT_REVISION_PATTERN = [1, 3, 7];
 
@@ -10,6 +10,8 @@ export default function Settings({ problems, onImportData }) {
   const [targetCompany, setTargetCompany] = useState(user?.targetCompany || '');
   const [hoursGoal, setHoursGoal] = useState(user?.hoursGoal || 10);
   const [localKey, setLocalKey] = useState(geminiKey || '');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   // Email — used for "Forgot Password". Accounts created before this
   // feature existed may not have one set yet, so this doubles as an
@@ -91,35 +93,34 @@ export default function Settings({ problems, onImportData }) {
   const [importError, setImportError] = useState('');
   const [importSuccess, setImportSuccess] = useState('');
 
-  const handleSaveProfile = async (e) => {
-    e.preventDefault();
+  const startEditing = () => {
+    setTargetCompany(user?.targetCompany || '');
+    setHoursGoal(user?.hoursGoal || 10);
+    setEmail(user?.email || '');
+    setIsEditingProfile(true);
     setProfileMsg('');
-    try {
-      await updateProfile(targetCompany, hoursGoal);
-      setProfileMsg('Profile updated successfully.');
-      setTimeout(() => setProfileMsg(''), 3000);
-    } catch (err) {
-      setProfileMsg('Failed to update profile.');
-    }
+    setEmailError('');
   };
 
-  const handleSaveEmail = async (e) => {
+  const handleSaveProfileAndEmail = async (e) => {
     e.preventDefault();
-    setEmailMsg('');
+    setProfileMsg('');
     setEmailError('');
-
-    const trimmed = email.trim();
-    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setEmailError('Enter a valid email address.');
-      return;
-    }
-
     try {
-      await updateEmail(trimmed);
-      setEmailMsg('Email saved. You can now use "Forgot password?" on the login screen.');
-      setTimeout(() => setEmailMsg(''), 4000);
+      const trimmedEmail = email.trim();
+      if (trimmedEmail !== (user?.email || '')) {
+        if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+          setEmailError('Enter a valid email address.');
+          return;
+        }
+        await updateEmail(trimmedEmail);
+      }
+      await updateProfile(targetCompany.trim(), hoursGoal);
+      setProfileMsg('Profile updated successfully.');
+      setIsEditingProfile(false);
+      setTimeout(() => setProfileMsg(''), 3000);
     } catch (err) {
-      setEmailError(err.message || 'Failed to update email.');
+      setEmailError(err.message || 'Failed to update profile.');
     }
   };
 
@@ -209,73 +210,133 @@ export default function Settings({ problems, onImportData }) {
         )}
       </div>
 
-      {/* Profile Form */}
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <h4 className="mono" style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', paddingBottom: 10, letterSpacing: '0.02em' }}>
-          Profile Goals
-        </h4>
-
-        {/* Account Email - used for password reset */}
-        <form onSubmit={handleSaveEmail} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
-            Account Email
-          </label>
-          {!user?.email && (
-            <span style={{ fontSize: 11.5, color: 'var(--ember)', display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Info size={12} /> No email on file yet — add one to enable "Forgot password?" on the login screen.
-            </span>
+      {/* Redesigned My Profile Section */}
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 10 }}>
+          <h4 className="mono" style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.02em', margin: 0 }}>
+            My Profile
+          </h4>
+          {!isEditingProfile && (
+            <button
+              onClick={startEditing}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--frost)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                fontSize: 12.5,
+                fontWeight: 600,
+                padding: '4px 8px',
+                borderRadius: 'var(--radius-xs)',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+              title="Edit Profile"
+            >
+              <Pencil size={14} />
+              <span>Edit</span>
+            </button>
           )}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: '1 1 220px' }}>
-              <Mail size={14} color="var(--text-faint)" style={{ position: 'absolute', left: 12, top: 13 }} />
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                style={{ paddingLeft: 34, width: '100%' }}
-              />
-            </div>
-            <button type="submit" className="btn-secondary" style={{ display: 'flex', gap: 6, padding: '8px 14px', whiteSpace: 'nowrap' }}>
-              <Save size={13} /> Save Email
-            </button>
-          </div>
-          {emailMsg && <span style={{ fontSize: 12, color: 'var(--signal)' }}>{emailMsg}</span>}
-          {emailError && <span style={{ fontSize: 12, color: 'var(--danger)' }}>{emailError}</span>}
-        </form>
+        </div>
 
-        <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        {profileMsg && (
+          <div style={{ fontSize: 12.5, color: 'var(--signal)', background: 'var(--signal-dim)', border: '1px solid rgba(74, 222, 128, 0.15)', borderRadius: 'var(--radius-sm)', padding: '8px 12px' }}>
+            {profileMsg}
+          </div>
+        )}
+        {emailError && (
+          <div style={{ fontSize: 12.5, color: 'var(--danger)', background: 'var(--danger-dim)', border: '1px solid rgba(248, 113, 113, 0.15)', borderRadius: 'var(--radius-sm)', padding: '8px 12px' }}>
+            {emailError}
+          </div>
+        )}
+
+        {!isEditingProfile ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 24px', padding: '4px 0' }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
-                Target Company
-              </label>
-              <input 
-                value={targetCompany}
-                onChange={e => setTargetCompany(e.target.value)}
-                placeholder="e.g. Google, Meta"
-              />
+              <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Username</span>
+              <strong style={{ fontSize: 14, color: '#fff' }}>{user?.username}</strong>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
-                Weekly Prep Target (Hours)
-              </label>
-              <input 
-                type="number"
-                min="1"
-                max="80"
-                value={hoursGoal}
-                onChange={e => setHoursGoal(e.target.value)}
-              />
+              <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Email</span>
+              <strong style={{ fontSize: 14, color: user?.email ? '#fff' : 'var(--text-muted)', fontStyle: user?.email ? 'normal' : 'italic' }}>
+                {user?.email || 'Not set'}
+              </strong>
+            </div>
+            <div>
+              <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Target Company</span>
+              <strong style={{ fontSize: 14, color: user?.targetCompany ? '#fff' : 'var(--text-muted)', fontStyle: user?.targetCompany ? 'normal' : 'italic' }}>
+                {user?.targetCompany || 'Not Specified'}
+              </strong>
+            </div>
+            <div>
+              <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Weekly Goal</span>
+              <strong style={{ fontSize: 14, color: '#fff' }}>{user?.hoursGoal || 10} hours/week</strong>
             </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
-            <button type="submit" className="btn-secondary" style={{ display: 'flex', gap: 6, padding: '8px 14px' }}>
-              <Save size={13} /> Save Profile Settings
-            </button>
-            {profileMsg && <span style={{ fontSize: 12, color: 'var(--signal)' }}>{profileMsg}</span>}
-          </div>
-        </form>
+        ) : (
+          <form onSubmit={handleSaveProfileAndEmail} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
+                Account Email
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={14} color="var(--text-faint)" style={{ position: 'absolute', left: 12, top: 13 }} />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  style={{ paddingLeft: 34, width: '100%' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
+                  Target Company
+                </label>
+                <input 
+                  value={targetCompany}
+                  onChange={e => setTargetCompany(e.target.value)}
+                  placeholder="e.g. Google, Meta"
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6 }}>
+                  Weekly Prep Target (Hours)
+                </label>
+                <input 
+                  type="number"
+                  min="1"
+                  max="80"
+                  value={hoursGoal}
+                  onChange={e => setHoursGoal(e.target.value)}
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <button type="submit" className="btn-secondary" style={{ display: 'flex', gap: 6, padding: '8px 14px' }}>
+                <Save size={13} /> Save Changes
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setIsEditingProfile(false)}
+                style={{ padding: '8px 14px' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* Revision Pattern */}
@@ -406,12 +467,33 @@ export default function Settings({ problems, onImportData }) {
             <div style={{ position: 'relative' }}>
               <Key size={14} color="var(--text-faint)" style={{ position: 'absolute', left: 12, top: 13 }} />
               <input 
-                type="password"
+                type={showApiKey ? "text" : "password"}
                 value={localKey}
                 onChange={e => setLocalKey(e.target.value)}
                 placeholder="AIzaSy..."
-                style={{ paddingLeft: 34 }}
+                style={{ paddingLeft: 34, paddingRight: 38 }}
               />
+              <button
+                type="button"
+                onClick={() => setShowApiKey(!showApiKey)}
+                style={{
+                  position: 'absolute',
+                  right: 12,
+                  top: 13,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: 'var(--text-faint)',
+                  transition: 'color 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}
+              >
+                {showApiKey ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>

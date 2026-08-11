@@ -160,10 +160,11 @@ export function calculateWeakestPatterns(problems) {
   const patternMap = {};
   problems.forEach(p => {
     const pattern = p.pattern || 'Other';
-    // Get the most recent review confidence, or default to 5 if none exists
-    const lastReview = p.reviewHistory && p.reviewHistory.length > 0
-      ? p.reviewHistory[p.reviewHistory.length - 1].confidence
-      : 5;
+    const hasReviews = p.reviewHistory && p.reviewHistory.length > 0;
+    if (!hasReviews) {
+      return;
+    }
+    const lastReview = p.reviewHistory[p.reviewHistory.length - 1].confidence;
 
     if (!patternMap[pattern]) {
       patternMap[pattern] = { sum: 0, count: 0 };
@@ -173,6 +174,7 @@ export function calculateWeakestPatterns(problems) {
   });
 
   return Object.entries(patternMap)
+    .filter(([_, val]) => val.count > 0)
     .map(([pattern, val]) => ({
       pattern,
       avgConfidence: parseFloat((val.sum / val.count).toFixed(2)),
@@ -181,6 +183,42 @@ export function calculateWeakestPatterns(problems) {
     .sort((a, b) => a.avgConfidence - b.avgConfidence) // Ascending order (lowest confidence first)
     .slice(0, 5); // Bottom 5
 }
+
+/**
+ * 2.5 Strongest Patterns / Topics
+ * Groups problems by topic, calculates their current average confidence (latest rating),
+ * sorts descending, and returns the top 5 strongest topics with their attempt counts.
+ */
+export function calculateStrongestPatterns(problems) {
+  if (!problems || problems.length === 0) return [];
+
+  const patternMap = {};
+  problems.forEach(p => {
+    const pattern = p.pattern || 'Other';
+    const hasReviews = p.reviewHistory && p.reviewHistory.length > 0;
+    if (!hasReviews) {
+      return;
+    }
+    const lastReview = p.reviewHistory[p.reviewHistory.length - 1].confidence;
+
+    if (!patternMap[pattern]) {
+      patternMap[pattern] = { sum: 0, count: 0 };
+    }
+    patternMap[pattern].sum += lastReview;
+    patternMap[pattern].count += 1;
+  });
+
+  return Object.entries(patternMap)
+    .filter(([_, val]) => val.count > 0)
+    .map(([pattern, val]) => ({
+      pattern,
+      avgConfidence: parseFloat((val.sum / val.count).toFixed(2)),
+      count: val.count // number of problems attempted in this topic
+    }))
+    .sort((a, b) => b.avgConfidence - a.avgConfidence) // Descending order (highest confidence first)
+    .slice(0, 5); // Top 5
+}
+
 
 /**
  * 3. Weekly Hours Tracking

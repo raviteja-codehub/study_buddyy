@@ -1,8 +1,12 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
+import { useAuth } from './AuthContext';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
 const FocusTimerContext = createContext(null);
 
 export function FocusTimerProvider({ children }) {
+  const { token, useLocalOnly } = useAuth();
   const [focusDuration, setFocusDuration] = useState(25); // minutes
   const [breakDuration, setBreakDuration] = useState(5); // minutes
 
@@ -118,6 +122,22 @@ export function FocusTimerProvider({ children }) {
           sessions.push({ date: new Date().toISOString().slice(0, 10), minutes: focusDuration });
           localStorage.setItem('studybuddy-focus-sessions', JSON.stringify(sessions));
         } catch (e) { console.error(e); }
+
+        if (token && !useLocalOnly) {
+          fetch(`${BACKEND_URL}/api/focus-sessions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              date: new Date().toISOString().slice(0, 10),
+              minutes: focusDuration
+            })
+          }).catch(err => {
+            console.error('Failed to post focus session to backend:', err);
+          });
+        }
       }
     };
 

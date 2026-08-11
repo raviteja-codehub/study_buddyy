@@ -29,6 +29,7 @@ import {
 import {
   calculateTrendData,
   calculateWeakestPatterns,
+  calculateStrongestPatterns,
   calculateWeeklyHours,
   calculateStreak,
   calculateHighestStreak,
@@ -37,7 +38,7 @@ import {
 } from '../utils/analytics';
 
 export default function Performance({ problems = [] }) {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, token, useLocalOnly } = useAuth();
   const [focusSessions, setFocusSessions] = useState([]);
 
   // Hours goal editing state
@@ -52,17 +53,49 @@ export default function Performance({ problems = [] }) {
     }
   }, [user]);
 
-  // Load Focus Timer sessions from local storage
+  // Load Focus Timer sessions (backend first, localStorage fallback)
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('studybuddy-focus-sessions');
-      if (stored) {
-        setFocusSessions(JSON.parse(stored));
+    let active = true;
+
+    const loadLocalSessions = () => {
+      try {
+        const stored = localStorage.getItem('studybuddy-focus-sessions');
+        if (stored && active) {
+          setFocusSessions(JSON.parse(stored));
+        }
+      } catch (e) {
+        console.error('Failed to load focus sessions from localStorage:', e);
       }
-    } catch (e) {
-      console.error('Failed to load focus sessions in Performance:', e);
+    };
+
+    if (token && !useLocalOnly) {
+      const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      fetch(`${BACKEND_URL}/api/focus-sessions`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        if (active) {
+          setFocusSessions(data);
+        }
+      })
+      .catch(err => {
+        console.warn('Failed to fetch focus sessions from server, using localStorage fallback:', err.message);
+        loadLocalSessions();
+      });
+    } else {
+      loadLocalSessions();
     }
-  }, []);
+
+    return () => {
+      active = false;
+    };
+  }, [token, useLocalOnly]);
 
   // Submit profile prep target goal update
   const handleSaveGoal = async (e) => {
@@ -82,6 +115,7 @@ export default function Performance({ problems = [] }) {
   // Perform analytics calculations
   const { trendData, hasEnoughData: hasTrendData } = calculateTrendData(problems);
   const weakestPatterns = calculateWeakestPatterns(problems);
+  const strongestPatterns = calculateStrongestPatterns(problems);
   const hours = calculateWeeklyHours(problems, focusSessions);
   const streakInfo = calculateStreak(problems, focusSessions);
   const highestStreak = calculateHighestStreak(problems, focusSessions);
@@ -93,6 +127,11 @@ export default function Performance({ problems = [] }) {
 
   // Y-axis label formatter: appends the attempts count next to topic
   const formattedWeakestPatterns = weakestPatterns.map(p => ({
+    ...p,
+    displayName: `${p.pattern} (${p.count})`
+  }));
+
+  const formattedStrongestPatterns = strongestPatterns.map(p => ({
     ...p,
     displayName: `${p.pattern} (${p.count})`
   }));
@@ -525,12 +564,46 @@ export default function Performance({ problems = [] }) {
                   <Tooltip
                     contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px' }}
                     labelStyle={{ color: '#fff' }}
-                    itemStyle={{ color: 'var(--ember)' }}
+                    itemStyle={{ color: 'var(--danger)' }}
                     formatter={(value) => [`${value} average`, 'Confidence']}
                   />
                   <Bar
                     dataKey="avgConfidence"
                     fill="var(--danger)"
+                    radius={[0, 4, 4, 0]}
+                    barSize={12}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </Card>
+
+        {/* Strongest Patterns */}
+        <Card title="Strongest Patterns" subtitle="Topics with the highest average confidence">
+          <div style={{ height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px 0' }}>
+            {formattedStrongestPatterns.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--signal-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <BarChart2 size={22} color="var(--signal)" style={{ opacity: 0.6 }} />
+                </div>
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No reviewed problems found.</span>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={formattedStrongestPatterns} layout="vertical" margin={{ left: -10, right: 10, top: 5, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                  <XAxis type="number" domain={[0, 5]} stroke="var(--text-faint)" fontSize={11} ticks={[1, 2, 3, 4, 5]} />
+                  <YAxis dataKey="displayName" type="category" stroke="var(--text-faint)" fontSize={11} width={110} />
+                  <Tooltip
+                    contentStyle={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px' }}
+                    labelStyle={{ color: '#fff' }}
+                    itemStyle={{ color: 'var(--frost)' }}
+                    formatter={(value) => [`${value} average`, 'Confidence']}
+                  />
+                  <Bar
+                    dataKey="avgConfidence"
+                    fill="var(--signal)"
                     radius={[0, 4, 4, 0]}
                     barSize={12}
                   />

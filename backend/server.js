@@ -70,17 +70,19 @@ app.post('/api/auth/register', async (req, res) => {
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
   }
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ error: 'A valid email is required (used for password reset)' });
+  if (email) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+    const existingEmail = await db.getUserByEmail(email);
+    if (existingEmail) {
+      return res.status(400).json({ error: 'An account with that email already exists' });
+    }
   }
 
   const existingUser = await db.getUserByUsername(username);
   if (existingUser) {
     return res.status(400).json({ error: 'Username is already taken' });
-  }
-  const existingEmail = await db.getUserByEmail(email);
-  if (existingEmail) {
-    return res.status(400).json({ error: 'An account with that email already exists' });
   }
 
   const salt = bcrypt.genSaltSync(10);
@@ -456,6 +458,31 @@ function generateFallbackSummary(title = '', description = '', notes = '') {
     summary: `Analyzed title and description context. Recommended pattern: ${pattern}. Solve by traversing elements and managing state efficiently.`
   };
 }
+
+// Focus Sessions Routes
+app.get('/api/focus-sessions', authenticateToken, async (req, res) => {
+  try {
+    const sessions = await db.getFocusSessions(req.user.id);
+    res.json(sessions);
+  } catch (err) {
+    console.error('Failed to get focus sessions:', err);
+    res.status(500).json({ error: 'Failed to fetch focus sessions' });
+  }
+});
+
+app.post('/api/focus-sessions', authenticateToken, async (req, res) => {
+  const { date, minutes } = req.body;
+  if (!date || minutes === undefined) {
+    return res.status(400).json({ error: 'Date and minutes are required' });
+  }
+  try {
+    const session = await db.createFocusSession(req.user.id, date, minutes);
+    res.json(session);
+  } catch (err) {
+    console.error('Failed to create focus session:', err);
+    res.status(500).json({ error: 'Failed to save focus session' });
+  }
+});
 
 const DEFAULT_PORT = parseInt(process.env.PORT, 10) || 3001;
 const PORT_FALLBACKS = [DEFAULT_PORT, 3002, 3003, 3004];

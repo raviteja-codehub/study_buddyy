@@ -12,19 +12,24 @@ const dbPath = path.join(__dirname, 'data', 'db.json');
 let db;
 let users;
 let problems;
+let focusSessions;
 let isFallback = false;
 
 // Fallback JSON DB Helpers
 function readJsonDb() {
   try {
     if (!fs.existsSync(dbPath)) {
-      return { users: [], problems: [] };
+      return { users: [], problems: [], focusSessions: [] };
     }
     const data = fs.readFileSync(dbPath, 'utf8');
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    if (!parsed.focusSessions) {
+      parsed.focusSessions = [];
+    }
+    return parsed;
   } catch (err) {
     console.error('Error reading fallback JSON DB:', err);
-    return { users: [], problems: [] };
+    return { users: [], problems: [], focusSessions: [] };
   }
 }
 
@@ -48,11 +53,13 @@ async function initialize() {
     db = client.db();
     users = db.collection('users');
     problems = db.collection('problems');
+    focusSessions = db.collection('focusSessions');
 
     await users.createIndex({ username: 1 }, { unique: true, collation: { locale: 'en', strength: 2 } });
     await users.createIndex({ email: 1 }, { unique: true, sparse: true, collation: { locale: 'en', strength: 2 } });
     await problems.createIndex({ userId: 1 });
     await problems.createIndex({ id: 1 }, { unique: true });
+    await focusSessions.createIndex({ userId: 1 });
     console.log('Successfully connected to MongoDB Atlas.');
   } catch (err) {
     console.warn('MongoDB connection failed. Falling back to local JSON database:', err.message);
@@ -444,5 +451,41 @@ module.exports = {
     );
 
     return rowToProblem(await problems.findOne({ id: problemId, userId }));
+  },
+
+  async getFocusSessions(userId) {
+    await initialize();
+    if (isFallback) {
+      const data = readJsonDb();
+      const sessions = data.focusSessions || [];
+      return sessions
+        .filter(s => s.userId === userId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    }
+    return focusSessions.find({ userId }).sort({ createdAt: -1 }).toArray();
+  },
+
+  async createFocusSession(userId, date, minutes) {
+    await initialize();
+    const newSession = {
+      id: 'f_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      userId,
+      date,
+      minutes: Number(minutes),
+      createdAt: new Date().toISOString(),
+    };
+
+    if (isFallback) {
+      const dbData = readJsonDb();
+      if (!dbData.focusSessions) {
+        dbData.focusSessions = [];
+      }
+      dbData.focusSessions.unshift(newSession);
+      writeJsonDb(dbData);
+      return newSession;
+    }
+
+    await focusSessions.insertOne(newSession);
+    return newSession;
   },
 };
